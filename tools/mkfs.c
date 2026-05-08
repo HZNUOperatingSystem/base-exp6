@@ -121,11 +121,6 @@ int main(int argc, char* argv[]) {
     strcpy(de.name, ".");
     iappend(rootino, &de, sizeof(de));
 
-    bzero(&de, sizeof(de));
-    de.inum = xshort(rootino);
-    strcpy(de.name, "..");
-    iappend(rootino, &de, sizeof(de));
-
     inum = ialloc(T_DEVICE, CONSOLE, 0);
     bzero(&de, sizeof(de));
     de.inum = xshort(inum);
