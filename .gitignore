@@ -1,9 +1,14 @@
+# global
 *~
 _*
+
+# compiler artifacts
 *.o
 *.d
 *.asm
 *.sym
+
+# development
 *.img
 vectors.S
 bootblock
@@ -14,5 +19,18 @@ kernelmemfs
 mkfs
 kernel/kernel
 user/usys.S
-.gdbinit
 TAGS
+
+# preferences
+/.vscode
+/.idea
+
+# code agent configs
+/.agents
+/.kilocode
+/.claude
+/.trae
+/.codex
+
+# os-related
+.DS_Store
