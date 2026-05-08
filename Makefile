@@ -194,15 +194,17 @@ user: $(UPROGS)
 
 MKFS = $(BUILD_DIR)/mkfs/mkfs
 FS_IMG = $(BUILD_DIR)/fs.img
+FS_FILES_DIR = files
+FS_FILES = $(shell find $(FS_FILES_DIR) -maxdepth 1 -type f 2>/dev/null | sort)
 
 $(MKFS): tools/mkfs.c $(wildcard $(I)/*.h)
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
 	$(Q)gcc -Wno-unknown-attributes $(MKFS_CPPFLAGS) -o $@ $<
 
-$(FS_IMG): $(MKFS) $(UPROGS)
+$(FS_IMG): $(MKFS) $(UPROGS) $(FS_FILES)
 	$(ECHO) "$(COLOR_MKFS)MKFS  $(NC)$@"
-	$(Q)$(MKFS) $@ $(UPROGS)
+	$(Q)$(MKFS) $@ $(UPROGS) $(FS_FILES)
 
 .PHONY: fs.img
 fs.img: $(FS_IMG)

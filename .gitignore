@@ -3,6 +3,8 @@
 
 # development
 /build
+/files/*
+!/files/README
 vectors.S
 bootblock
 entryother
