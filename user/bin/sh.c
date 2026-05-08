@@ -104,13 +104,57 @@ int text_width(char* buf, int start, int end) {
     return width;
 }
 
+int append_uint(char* out, int pos, int value) {
+    char tmp[12];
+    int n = 0;
+
+    if (value == 0) {
+        out[pos++] = '0';
+        return pos;
+    }
+    while (value > 0) {
+        tmp[n++] = '0' + value % 10;
+        value /= 10;
+    }
+    while (n > 0)
+        out[pos++] = tmp[--n];
+    return pos;
+}
+
+void move_cursor(char dir, int width) {
+    char out[16];
+    int n = 0;
+
+    if (width <= 0)
+        return;
+    out[n++] = '\033';
+    out[n++] = '[';
+    n = append_uint(out, n, width);
+    out[n++] = dir;
+    write(2, out, n);
+}
+
 void redraw(char* buf, int len, int cursor) {
+    char out[140];
+    int n = 0;
     int tail = text_width(buf, cursor, len);
 
-    write(2, "\r\033[2K" PROMPT, 7);
-    write(2, buf, len);
-    if (tail > 0)
-        fprintf(2, "\033[%dD", tail);
+    out[n++] = '\r';
+    out[n++] = '\033';
+    out[n++] = '[';
+    out[n++] = '2';
+    out[n++] = 'K';
+    out[n++] = '$';
+    out[n++] = ' ';
+    memmove(out + n, buf, len);
+    n += len;
+    if (tail > 0) {
+        out[n++] = '\033';
+        out[n++] = '[';
+        n = append_uint(out, n, tail);
+        out[n++] = 'D';
+    }
+    write(2, out, n);
 }
 
 void insert_bytes(char* buf, int* len, int* cursor, int nbuf, char* s, int n) {
@@ -281,13 +325,17 @@ int getcmd(char* buf, int nbuf) {
                 continue;
             }
             if (seq[0] == '[' && seq[1] == 'C') {
-                cursor = nextchar(buf, cursor, len);
-                redraw(buf, len, cursor);
+                int next = nextchar(buf, cursor, len);
+
+                move_cursor('C', text_width(buf, cursor, next));
+                cursor = next;
                 continue;
             }
             if (seq[0] == '[' && seq[1] == 'D') {
-                cursor = prevchar(buf, cursor);
-                redraw(buf, len, cursor);
+                int prev = prevchar(buf, cursor);
+
+                move_cursor('D', text_width(buf, prev, cursor));
+                cursor = prev;
                 continue;
             }
             if (seq[0] == '[' && seq[1] == '3') {
