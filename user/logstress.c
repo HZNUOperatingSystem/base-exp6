@@ -1,7 +1,7 @@
-#include "kernel/types.h"
-#include "kernel/stat.h"
-#include "kernel/fcntl.h"
-#include "user/user.h"
+#include "types.h"
+#include "stat.h"
+#include "fcntl.h"
+#include "user.h"
 
 // Stress xv6 logging system by having several processes writing
 // concurrently to their own file (e.g., logstress f1 f2 f3 f4)

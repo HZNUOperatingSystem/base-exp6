@@ -1,24 +1,14 @@
 # global
 *~
-_*
-
-# compiler artifacts
-*.o
-*.d
-*.asm
-*.sym
 
 # development
-*.img
+/build
 vectors.S
 bootblock
 entryother
 initcode
 initcode.out
 kernelmemfs
-mkfs
-kernel/kernel
-user/usys.S
 TAGS
 
 # preferences

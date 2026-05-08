@@ -1,7 +1,7 @@
-#include "kernel/types.h"
-#include "kernel/stat.h"
-#include "kernel/fcntl.h"
-#include "user/user.h"
+#include "types.h"
+#include "stat.h"
+#include "fcntl.h"
+#include "user.h"
 
 // Create an orphaned file and check if test-xv6.py recovers it.
 

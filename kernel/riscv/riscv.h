@@ -1,3 +1,6 @@
+#ifndef XV6_KERNEL_RISCV_H
+#define XV6_KERNEL_RISCV_H
+
 #ifndef __ASSEMBLER__
 
 // which hart (core) is this?
@@ -304,6 +307,8 @@ intr_get()
   return (x & SSTATUS_SIE) != 0;
 }
 
+#ifndef XV6_RISCV_R_SP
+#define XV6_RISCV_R_SP
 static inline uint64
 r_sp()
 {
@@ -311,6 +316,7 @@ r_sp()
   asm volatile("mv %0, sp" : "=r" (x) );
   return x;
 }
+#endif
 
 // read and write tp, the thread pointer, which xv6 uses to hold
 // this core's hartid (core number), the index into cpus[].
@@ -349,8 +355,8 @@ typedef uint64 *pagetable_t; // 512 PTEs
 
 #endif // __ASSEMBLER__
 
-#define PGSIZE 4096 // bytes per page
-#define PGSHIFT 12  // bits of offset within a page
+#define PGSIZE 4096
+#define PGSHIFT 12
 
 #define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))
 #define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
@@ -373,8 +379,6 @@ typedef uint64 *pagetable_t; // 512 PTEs
 #define PXSHIFT(level)  (PGSHIFT+(9*(level)))
 #define PX(level, va) ((((uint64) (va)) >> PXSHIFT(level)) & PXMASK)
 
-// one beyond the highest possible virtual address.
-// MAXVA is actually one bit less than the max allowed by
-// Sv39, to avoid having to sign-extend virtual addresses
-// that have the high bit set.
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
+
+#endif

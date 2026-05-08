@@ -1,68 +1,67 @@
-K=kernel
-U=user
+# MARK: - style control
 
-OBJS = \
-  $K/entry.o \
-  $K/start.o \
-  $K/console.o \
-  $K/printf.o \
-  $K/uart.o \
-  $K/kalloc.o \
-  $K/spinlock.o \
-  $K/string.o \
-  $K/main.o \
-  $K/vm.o \
-  $K/proc.o \
-  $K/swtch.o \
-  $K/trampoline.o \
-  $K/trap.o \
-  $K/syscall.o \
-  $K/sysproc.o \
-  $K/bio.o \
-  $K/fs.o \
-  $K/log.o \
-  $K/sleeplock.o \
-  $K/file.o \
-  $K/pipe.o \
-  $K/exec.o \
-  $K/sysfile.o \
-  $K/kernelvec.o \
-  $K/plic.o \
-  $K/virtio_disk.o
+V ?= 0
 
-# riscv64-unknown-elf- or riscv64-linux-gnu-
-# perhaps in /opt/riscv/bin
-#TOOLPREFIX = 
-
-# Try to infer the correct TOOLPREFIX if not set
-ifndef TOOLPREFIX
-TOOLPREFIX := $(shell if riscv64-unknown-elf-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
-	then echo 'riscv64-unknown-elf-'; \
-	elif riscv64-elf-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
-	then echo 'riscv64-elf-'; \
-	elif riscv64-none-elf-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
-	then echo 'riscv64-none-elf-'; \
-	elif riscv64-linux-gnu-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
-	then echo 'riscv64-linux-gnu-'; \
-	elif riscv64-unknown-linux-gnu-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
-	then echo 'riscv64-unknown-linux-gnu-'; \
-	else echo "***" 1>&2; \
-	echo "*** Error: Couldn't find a riscv64 version of GCC/binutils." 1>&2; \
-	echo "*** To turn off this error, run 'gmake TOOLPREFIX= ...'." 1>&2; \
-	echo "***" 1>&2; exit 1; fi)
+# verbose output
+ifeq ($(V),0)
+	Q    = @
+	ECHO = @echo
+else
+	Q    =
+	ECHO = @true
 endif
 
-QEMU = qemu-system-riscv64
-MIN_QEMU_VERSION = 7.2
+# color table
+ifneq ($(shell tput colors 2>/dev/null),)
+	ESC        := \033[
+	NC         := $(ESC)0m
+	COLOR_CC   := $(ESC)0;34m
+	COLOR_AS   := $(ESC)0;33m
+	COLOR_LD   := $(ESC)0;32m
+	COLOR_MKFS := $(ESC)0;35m
+	COLOR_RUN  := $(ESC)0;36m
+	COLOR_OK   := $(ESC)0;32m
+	COLOR_ERR  := $(ESC)0;31m
+else
+	COLOR_CC = COLOR_AS = COLOR_LD = \
+	COLOR_MKFS = COLOR_RUN = COLOR_OK = \
+	COLOR_ERR = NC =
+endif
 
-CC = $(TOOLPREFIX)gcc
-AS = $(TOOLPREFIX)gas
-LD = $(TOOLPREFIX)ld
-OBJCOPY = $(TOOLPREFIX)objcopy
-OBJDUMP = $(TOOLPREFIX)objdump
+# MARK: - toolchain
 
+PREFIX ?= $(shell ./scripts/find_riscv_toolchain.sh 2>/dev/null)
+
+ifeq ($(PREFIX),ERROR)
+	$(error Could not find RISC-V toolchain in PATH!)
+endif
+
+PREFIX := $(strip $(PREFIX))
+
+# apply prefix
+CC      = $(PREFIX)gcc
+AS      = $(PREFIX)as
+LD      = $(PREFIX)ld
+OBJCOPY = $(PREFIX)objcopy
+OBJDUMP = $(PREFIX)objdump
+GDB     = $(PREFIX)gdb
+
+# MARK: - variables
+
+K=kernel
+U=user
+I=include
+BUILD_DIR=build
+LINKER_DIR=linker
+
+include config.mk
+
+KERNEL_LD=$(LINKER_DIR)/kernel.ld
+USER_LD=$(LINKER_DIR)/user.ld
+
+# compiler flags
 CFLAGS = -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
-CFLAGS += -march=rv64gc
+CFLAGS += -march=rv64gc -mabi=lp64
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding
@@ -73,123 +72,147 @@ CFLAGS += -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin
 CFLAGS += -fno-builtin-free
 CFLAGS += -fno-builtin-memcpy -Wno-main
 CFLAGS += -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf
-CFLAGS += -I.
+CFLAGS += -fdiagnostics-color=always
+
+KERNEL_CPPFLAGS = -I$(K)/include -I$(K)/riscv -I$(I)
+USER_CPPFLAGS = -I$(U)/include -I$(I)
+MKFS_CPPFLAGS = -iquote $(I)
+
+# linker flags
+LDFLAGS = -z max-page-size=4096
+LDFLAGS += -melf64lriscv
+
+# disable stack protector
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
-# Disable PIE when possible (for Ubuntu 16.10 toolchain)
-ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]no-pie'),)
-CFLAGS += -fno-pie -no-pie
-endif
-ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]nopie'),)
-CFLAGS += -fno-pie -nopie
-endif
+# disable PIE
+CFLAGS += $(shell $(CC) -dumpspecs 2>/dev/null | grep -q 'no-pie' && echo '-fno-pie -no-pie')
 
-LDFLAGS = -z max-page-size=4096
+# MARK: - helper targets
 
-$K/kernel: $(OBJS) $K/kernel.ld
-	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) 
-	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
-	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
+.PHONY: all
+all: kernel fs.img
 
-$K/%.o: $K/%.S
-	$(CC) -march=rv64gc -g -c -o $@ $<
+.PHONY: toolchain-info
+toolchain-info:
+	$(ECHO) "$(COLOR_OK)[Toolchain Prefix] $(COLOR_CC)$(PREFIX)$(NC)"
 
-tags: $(OBJS)
-	etags kernel/*.S kernel/*.c
+.PHONY: clean
+clean:
+	rm -rf $(BUILD_DIR)
 
-ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
+# MARK: - kernel targets
 
-_%: %.o $(ULIB) $U/user.ld
-	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $< $(ULIB)
-	$(OBJDUMP) -S $@ > $*.asm
-	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+KERNEL = $(BUILD_DIR)/kernel.elf
 
-$U/usys.S : $U/usys.pl
-	perl $U/usys.pl > $U/usys.S
+KERNEL_C_SRCS = $(wildcard $(K)/*.c)
+KERNEL_S_SRCS = $(wildcard $(K)/*.S) $(wildcard $(K)/riscv/*.S)
 
-$U/usys.o : $U/usys.S
-	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
+KERNEL_C_OBJS = $(patsubst $(K)/%.c,$(BUILD_DIR)/$(K)/%.o,$(KERNEL_C_SRCS))
+KERNEL_S_OBJS = $(patsubst $(K)/%.S,$(BUILD_DIR)/$(K)/%.o,$(KERNEL_S_SRCS))
+KERNEL_OBJS = $(KERNEL_C_OBJS) $(KERNEL_S_OBJS)
 
-$U/_forktest: $U/forktest.o $(ULIB)
-	# forktest has less library code linked in - needs to be small
-	# in order to be able to max out the proc table.
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
-	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
+$(BUILD_DIR)/$(K)/%.o: $(K)/%.c
+	@mkdir -p $(@D)
+	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
+	$(Q)$(CC) $(CFLAGS) $(KERNEL_CPPFLAGS) -c -o $@ $<
 
-mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
-	gcc -Wno-unknown-attributes -I. -o mkfs/mkfs mkfs/mkfs.c
+$(BUILD_DIR)/$(K)/%.o: $(K)/%.S
+	@mkdir -p $(@D)
+	$(ECHO) "$(COLOR_AS)  AS  $(NC)$@"
+	$(Q)$(CC) $(CFLAGS) $(KERNEL_CPPFLAGS) -c -o $@ $<
 
-# Prevent deletion of intermediate files, e.g. cat.o, after first build, so
-# that disk image changes after first build are persistent until clean.  More
-# details:
-# http://www.gnu.org/software/make/manual/html_node/Chained-Rules.html
-.PRECIOUS: %.o
+$(KERNEL): $(KERNEL_OBJS) $(KERNEL_LD)
+	$(ECHO) "$(COLOR_LD)  LD  $(NC)$@"
+	$(Q)$(LD) $(LDFLAGS) -T $(KERNEL_LD) -o $@ $(KERNEL_OBJS)
+	$(Q)$(OBJDUMP) -S $@ > $(BUILD_DIR)/kernel.asm
+	$(Q)$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(BUILD_DIR)/kernel.sym
 
-UPROGS=\
-	$U/_cat\
-	$U/_echo\
-	$U/_forktest\
-	$U/_grep\
-	$U/_init\
-	$U/_kill\
-	$U/_ln\
-	$U/_ls\
-	$U/_mkdir\
-	$U/_rm\
-	$U/_sh\
-	$U/_stressfs\
-	$U/_usertests\
-	$U/_grind\
-	$U/_wc\
-	$U/_zombie\
-	$U/_logstress\
-	$U/_forphan\
-	$U/_dorphan\
+.PHONY: kernel
+kernel: $(KERNEL)
 
-fs.img: mkfs/mkfs README $(UPROGS)
-	mkfs/mkfs fs.img README $(UPROGS)
+# MARK: - user targets
 
--include kernel/*.d user/*.d
+USER_LIB_SRCS = $(addprefix $(U)/,ulib.c printf.c umalloc.c)
+USER_LIB_OBJS = $(patsubst $(U)/%.c,$(BUILD_DIR)/$(U)/%.o,$(USER_LIB_SRCS))
+USYS_S = $(BUILD_DIR)/$(U)/usys.S
+USYS_OBJ = $(BUILD_DIR)/$(U)/usys.o
+ULIB = $(USER_LIB_OBJS) $(USYS_OBJ)
 
-clean: 
-	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
-	*/*.o */*.d */*.asm */*.sym \
-	$K/kernel fs.img \
-	mkfs/mkfs .gdbinit \
-        $U/usys.S \
-	$(UPROGS)
+USER_PROG_SRCS = $(filter-out $(USER_LIB_SRCS),$(wildcard $(U)/*.c))
+USER_NORMAL_SRCS = $(filter-out $(U)/forktest.c,$(USER_PROG_SRCS))
+USER_NORMAL_PROGS = $(patsubst $(U)/%.c,$(BUILD_DIR)/$(U)/_%,$(USER_NORMAL_SRCS))
+UPROGS = $(USER_NORMAL_PROGS) $(BUILD_DIR)/$(U)/_forktest
 
-# try to generate a unique GDB port
-GDBPORT = $(shell expr `id -u` % 5000 + 25000)
-# QEMU's gdb stub command line changed in 0.11
-QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
-	then echo "-gdb tcp::$(GDBPORT)"; \
-	else echo "-s -p $(GDBPORT)"; fi)
-ifndef CPUS
-CPUS := 3
-endif
+$(BUILD_DIR)/$(U)/%.o: $(U)/%.c
+	@mkdir -p $(@D)
+	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
+	$(Q)$(CC) $(CFLAGS) $(USER_CPPFLAGS) -c -o $@ $<
 
-QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
+$(USYS_S): $(U)/usys.pl
+	@mkdir -p $(@D)
+	$(ECHO) "$(COLOR_AS)  GEN $(NC)$@"
+	$(Q)perl $< > $@
+
+$(USYS_OBJ): $(USYS_S)
+	@mkdir -p $(@D)
+	$(ECHO) "$(COLOR_AS)  AS  $(NC)$@"
+	$(Q)$(CC) $(CFLAGS) $(USER_CPPFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/$(U)/_%: $(BUILD_DIR)/$(U)/%.o $(ULIB) $(USER_LD)
+	$(ECHO) "$(COLOR_LD)  LD  $(NC)$@"
+	$(Q)$(LD) $(LDFLAGS) -T $(USER_LD) -o $@ $< $(ULIB)
+	$(Q)$(OBJDUMP) -S $@ > $(BUILD_DIR)/$(U)/$*.asm
+	$(Q)$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(BUILD_DIR)/$(U)/$*.sym
+
+$(BUILD_DIR)/$(U)/_forktest: $(BUILD_DIR)/$(U)/forktest.o $(BUILD_DIR)/$(U)/ulib.o $(USYS_OBJ)
+	$(ECHO) "$(COLOR_LD)  LD  $(NC)$@"
+	$(Q)$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+	$(Q)$(OBJDUMP) -S $@ > $(BUILD_DIR)/$(U)/forktest.asm
+
+.PHONY: user
+user: $(UPROGS)
+
+.PRECIOUS: $(BUILD_DIR)/$(K)/%.o $(BUILD_DIR)/$(U)/%.o $(USYS_S)
+
+# MARK: - filesystem targets
+
+MKFS = $(BUILD_DIR)/mkfs/mkfs
+FS_IMG = $(BUILD_DIR)/fs.img
+
+$(MKFS): mkfs/mkfs.c $(wildcard $(I)/*.h)
+	@mkdir -p $(@D)
+	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
+	$(Q)gcc -Wno-unknown-attributes $(MKFS_CPPFLAGS) -o $@ $<
+
+$(FS_IMG): $(MKFS) README.md $(UPROGS)
+	$(ECHO) "$(COLOR_MKFS)MKFS  $(NC)$@"
+	$(Q)$(MKFS) $@ README.md $(UPROGS)
+
+.PHONY: fs.img
+fs.img: $(FS_IMG)
+
+# MARK: - qemu targets
+
+QEMUOPTS = -machine virt -bios none -kernel $(KERNEL) -m 128M -smp $(CPUS) -nographic
 QEMUOPTS += -global virtio-mmio.force-legacy=false
-QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
+QEMUOPTS += -drive file=$(FS_IMG),if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
-qemu: check-qemu-version $K/kernel fs.img
-	$(QEMU) $(QEMUOPTS)
+QEMU_VERSION = $(shell $(QEMU) --version | head -n 1 | sed -E 's/^QEMU emulator version ([0-9]+\.[0-9]+)\..*/\1/')
 
-.gdbinit: .gdbinit.tmpl-riscv
-	sed "s/:1234/:$(GDBPORT)/" < $^ > $@
-
-qemu-gdb: $K/kernel .gdbinit fs.img
-	@echo "*** Now run 'gdb' in another window." 1>&2
-	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
-
-print-gdbport:
-	@echo $(GDBPORT)
-
-QEMU_VERSION := $(shell $(QEMU) --version | head -n 1 | sed -E 's/^QEMU emulator version ([0-9]+\.[0-9]+)\..*/\1/')
+.PHONY: check-qemu-version
 check-qemu-version:
-	@if [ "$(shell echo "$(QEMU_VERSION) >= $(MIN_QEMU_VERSION)" | bc)" -eq 0 ]; then \
+	$(Q)if [ "$(shell echo "$(QEMU_VERSION) >= $(MIN_QEMU_VERSION)" | bc)" -eq 0 ]; then \
 		echo "ERROR: Need qemu version >= $(MIN_QEMU_VERSION)"; \
 		exit 1; \
 	fi
+
+.PHONY: qemu
+qemu: check-qemu-version $(KERNEL) $(FS_IMG)
+	$(ECHO) "$(COLOR_RUN)QEMU  $(NC)$(KERNEL)"
+	$(Q)$(QEMU) $(QEMUOPTS)
+
+-include $(KERNEL_OBJS:.o=.d)
+-include $(USER_LIB_OBJS:.o=.d) $(USYS_OBJ:.o=.d)
+-include $(patsubst $(U)/%.c,$(BUILD_DIR)/$(U)/%.d,$(USER_PROG_SRCS))

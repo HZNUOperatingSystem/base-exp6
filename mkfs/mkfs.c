@@ -6,10 +6,10 @@
 #include <assert.h>
 
 #define stat xv6_stat  // avoid clash with host struct stat
-#include "kernel/types.h"
-#include "kernel/fs.h"
-#include "kernel/stat.h"
-#include "kernel/param.h"
+#include "types.h"
+#include "fs.h"
+#include "stat.h"
+#include "param.h"
 
 #ifndef static_assert
 #define static_assert(a, b) do { switch (0) case 0: case (a): ; } while (0)
@@ -128,14 +128,8 @@ main(int argc, char *argv[])
   iappend(rootino, &de, sizeof(de));
 
   for(i = 2; i < argc; i++){
-    // get rid of "user/"
-    char *shortname;
-    if(strncmp(argv[i], "user/", 5) == 0)
-      shortname = argv[i] + 5;
-    else
-      shortname = argv[i];
-    
-    assert(index(shortname, '/') == 0);
+    char *shortname = strrchr(argv[i], '/');
+    shortname = shortname ? shortname + 1 : argv[i];
 
     if((fd = open(argv[i], 0)) < 0)
       die(argv[i]);
