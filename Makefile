@@ -196,11 +196,15 @@ QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=$(FS_IMG),if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
-QEMU_VERSION = $(shell $(QEMU) --version | head -n 1 | sed -E 's/^QEMU emulator version ([0-9]+\.[0-9]+)\..*/\1/')
+QEMU_VERSION = $(shell $(QEMU) --version 2>/dev/null | sed -nE '1s/.*QEMU emulator version ([0-9]+(\.[0-9]+)?).*/\1/p')
 
 .PHONY: check-qemu-version
 check-qemu-version:
-	$(Q)if [ "$(shell echo "$(QEMU_VERSION) >= $(MIN_QEMU_VERSION)" | bc)" -eq 0 ]; then \
+	$(Q)if [ -z "$(QEMU_VERSION)" ]; then \
+		echo "ERROR: Could not determine qemu version"; \
+		exit 1; \
+	fi
+	$(Q)if ! awk -v have="$(QEMU_VERSION)" -v need="$(MIN_QEMU_VERSION)" 'BEGIN { split(have, h, "."); split(need, n, "."); for (i = 1; i <= 2; i++) { if (h[i] + 0 > n[i] + 0) exit 0; if (h[i] + 0 < n[i] + 0) exit 1; } exit 0 }'; then \
 		echo "ERROR: Need qemu version >= $(MIN_QEMU_VERSION)"; \
 		exit 1; \
 	fi
