@@ -18,7 +18,7 @@ SECTIONS
   .eh_frame : {
        *(.eh_frame)
        *(.eh_frame.*)
-   }
+  }
 
   . = ALIGN(0x1000);
   .data : {
