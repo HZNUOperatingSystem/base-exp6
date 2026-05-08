@@ -63,11 +63,8 @@ void fileclose(struct file* f) {
     f->type = FD_NONE;
     release(&ftable.lock);
 
-    if (ff.type == FD_INODE || ff.type == FD_DEVICE) {
-        begin_op();
+    if (ff.type == FD_INODE || ff.type == FD_DEVICE)
         iput(ff.ip);
-        end_op();
-    }
 }
 
 // Get metadata about file f.
@@ -114,44 +111,14 @@ int fileread(struct file* f, uint64 addr, int n) {
 // Write to file f.
 // addr is a user virtual address.
 int filewrite(struct file* f, uint64 addr, int n) {
-    int r, ret = 0;
-
     if (f->writable == 0)
         return -1;
 
     if (f->type == FD_DEVICE) {
         if (f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
             return -1;
-        ret = devsw[f->major].write(1, addr, n);
-    } else if (f->type == FD_INODE) {
-        // write a few blocks at a time to avoid exceeding
-        // the maximum log transaction size, including
-        // i-node, indirect block, allocation blocks,
-        // and 2 blocks of slop for non-aligned writes.
-        int max = ((MAXOPBLOCKS - 1 - 1 - 2) / 2) * BSIZE;
-        int i = 0;
-        while (i < n) {
-            int n1 = n - i;
-            if (n1 > max)
-                n1 = max;
-
-            begin_op();
-            ilock(f->ip);
-            if ((r = writei(f->ip, 1, addr + i, f->off, n1)) > 0)
-                f->off += r;
-            iunlock(f->ip);
-            end_op();
-
-            if (r != n1) {
-                // error from writei
-                break;
-            }
-            i += r;
-        }
-        ret = (i == n ? n : -1);
-    } else {
-        panic("filewrite");
+        return devsw[f->major].write(1, addr, n);
     }
 
-    return ret;
+    return -1;
 }

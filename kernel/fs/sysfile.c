@@ -122,22 +122,16 @@ uint64 sys_open(void) {
     if (omode & (O_CREATE | O_TRUNC))
         return -1;
 
-    begin_op();
-
-    if ((ip = namei(path)) == 0) {
-        end_op();
+    if ((ip = namei(path)) == 0)
         return -1;
-    }
     ilock(ip);
     if (ip->type == T_DIR && omode != O_RDONLY) {
         iunlockput(ip);
-        end_op();
         return -1;
     }
 
     if (ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)) {
         iunlockput(ip);
-        end_op();
         return -1;
     }
 
@@ -145,7 +139,6 @@ uint64 sys_open(void) {
         if (f)
             fileclose(f);
         iunlockput(ip);
-        end_op();
         return -1;
     }
 
@@ -162,7 +155,6 @@ uint64 sys_open(void) {
                   ((omode & O_WRONLY) || (omode & O_RDWR));
 
     iunlock(ip);
-    end_op();
 
     return fd;
 }

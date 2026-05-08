@@ -312,9 +312,7 @@ void kexit(int status) {
         }
     }
 
-    begin_op();
     iput(p->cwd);
-    end_op();
     p->cwd = 0;
 
     acquire(&wait_lock);
