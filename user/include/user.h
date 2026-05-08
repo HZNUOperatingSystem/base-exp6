@@ -1,3 +1,8 @@
+#ifndef XV6_USER_USER_H
+#define XV6_USER_USER_H
+
+#include "types.h"
+
 #define SBRK_ERROR ((char*)-1)
 
 struct stat;
@@ -47,3 +52,5 @@ void printf(const char*, ...) __attribute__((format(printf, 1, 2)));
 // umalloc.c
 void* malloc(uint);
 void free(void*);
+
+#endif

@@ -1,5 +1,10 @@
+#ifndef XV6_FS_H
+#define XV6_FS_H
+
 // On-disk file system format.
 // Both the kernel and user programs use this header file.
+
+#include "types.h"
 
 #define ROOTINO 1  // root i-number
 #define BSIZE 1024 // block size
@@ -58,3 +63,5 @@ struct dirent {
     ushort inum;
     char name[DIRSIZ] __attribute__((nonstring));
 };
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef XV6_KERNEL_MEMLAYOUT_H
+#define XV6_KERNEL_MEMLAYOUT_H
+
 // Physical memory layout
 
 #include "riscv.h"
@@ -59,3 +62,5 @@
 //   TRAPFRAME (p->trapframe, used by the trampoline)
 //   TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
+
+#endif

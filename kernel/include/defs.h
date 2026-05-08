@@ -1,3 +1,9 @@
+#ifndef XV6_KERNEL_DEFS_H
+#define XV6_KERNEL_DEFS_H
+
+#include "riscv.h"
+#include "types.h"
+
 struct buf;
 struct context;
 struct file;
@@ -183,3 +189,5 @@ void virtio_disk_intr(void);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))
+
+#endif
