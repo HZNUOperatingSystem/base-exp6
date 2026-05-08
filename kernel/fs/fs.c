@@ -218,10 +218,8 @@ void iunlockput(struct inode* ip) {
 
 // Inode content
 //
-// The content (data) associated with each inode is stored
-// in blocks on the disk. The first NDIRECT block numbers
-// are listed in ip->addrs[].  The next NINDIRECT blocks are
-// listed in block ip->addrs[NDIRECT].
+// The content (data) associated with each inode is stored in disk blocks.
+// Inodes carry direct, single-indirect, and double-indirect block pointers.
 
 // Return the disk block address of the nth block in inode ip.
 static uint bmap(struct inode* ip, uint bn) {
@@ -238,6 +236,24 @@ static uint bmap(struct inode* ip, uint bn) {
         bp = bread(ip->dev, addr);
         a = (uint*)bp->data;
         addr = a[bn];
+        brelse(bp);
+        return addr;
+    }
+    bn -= NINDIRECT;
+
+    if (bn < NDINDIRECT) {
+        if ((addr = ip->addrs[NDIRECT + 1]) == 0)
+            return 0;
+        bp = bread(ip->dev, addr);
+        a = (uint*)bp->data;
+        addr = a[bn / NINDIRECT];
+        brelse(bp);
+        if (addr == 0)
+            return 0;
+
+        bp = bread(ip->dev, addr);
+        a = (uint*)bp->data;
+        addr = a[bn % NINDIRECT];
         brelse(bp);
         return addr;
     }

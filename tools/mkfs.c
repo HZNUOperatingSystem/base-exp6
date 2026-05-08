@@ -44,6 +44,7 @@ void winode(uint, struct dinode*);
 void rinode(uint inum, struct dinode* ip);
 void rsect(uint sec, void* buf);
 uint ialloc(ushort type, ushort major, ushort minor);
+uint allocblock(void);
 void iappend(uint inum, void* p, int n);
 void die(const char*);
 
@@ -219,18 +220,27 @@ uint ialloc(ushort type, ushort major, ushort minor) {
     return inum;
 }
 
+uint allocblock(void) {
+    if (freeblock >= FSSIZE) {
+        fprintf(stderr, "mkfs: out of blocks\n");
+        exit(1);
+    }
+    return freeblock++;
+}
+
 void balloc(int used) {
     uchar buf[BSIZE];
-    int i;
+    int i, b;
 
-    // printf("balloc: first %d blocks have been allocated\n", used);
-    assert(used < BPB);
-    bzero(buf, BSIZE);
-    for (i = 0; i < used; i++) {
-        buf[i / 8] = buf[i / 8] | (0x1 << (i % 8));
+    for (b = 0; b < nbitmap; b++) {
+        bzero(buf, BSIZE);
+        for (i = 0; i < BPB; i++) {
+            int block = b * BPB + i;
+            if (block < used)
+                buf[i / 8] = buf[i / 8] | (0x1 << (i % 8));
+        }
+        wsect(sb.bmapstart + b, buf);
     }
-    // printf("balloc: write bitmap block at sector %d\n", sb.bmapstart);
-    wsect(sb.bmapstart, buf);
 }
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
@@ -241,6 +251,7 @@ void iappend(uint inum, void* xp, int n) {
     struct dinode din;
     char buf[BSIZE];
     uint indirect[NINDIRECT];
+    uint indirect2[NINDIRECT];
     uint x;
 
     rinode(inum, &din);
@@ -251,19 +262,40 @@ void iappend(uint inum, void* xp, int n) {
         assert(fbn < MAXFILE);
         if (fbn < NDIRECT) {
             if (xint(din.addrs[fbn]) == 0) {
-                din.addrs[fbn] = xint(freeblock++);
+                din.addrs[fbn] = xint(allocblock());
             }
             x = xint(din.addrs[fbn]);
-        } else {
+        } else if (fbn < NDIRECT + NINDIRECT) {
+            uint inbn = fbn - NDIRECT;
+
             if (xint(din.addrs[NDIRECT]) == 0) {
-                din.addrs[NDIRECT] = xint(freeblock++);
+                din.addrs[NDIRECT] = xint(allocblock());
             }
             rsect(xint(din.addrs[NDIRECT]), (char*)indirect);
-            if (indirect[fbn - NDIRECT] == 0) {
-                indirect[fbn - NDIRECT] = xint(freeblock++);
+            if (indirect[inbn] == 0) {
+                indirect[inbn] = xint(allocblock());
                 wsect(xint(din.addrs[NDIRECT]), (char*)indirect);
             }
-            x = xint(indirect[fbn - NDIRECT]);
+            x = xint(indirect[inbn]);
+        } else {
+            uint dbn = fbn - NDIRECT - NINDIRECT;
+            uint i1 = dbn / NINDIRECT;
+            uint i2 = dbn % NINDIRECT;
+
+            if (xint(din.addrs[NDIRECT + 1]) == 0) {
+                din.addrs[NDIRECT + 1] = xint(allocblock());
+            }
+            rsect(xint(din.addrs[NDIRECT + 1]), (char*)indirect);
+            if (indirect[i1] == 0) {
+                indirect[i1] = xint(allocblock());
+                wsect(xint(din.addrs[NDIRECT + 1]), (char*)indirect);
+            }
+            rsect(xint(indirect[i1]), (char*)indirect2);
+            if (indirect2[i2] == 0) {
+                indirect2[i2] = xint(allocblock());
+                wsect(xint(indirect[i1]), (char*)indirect2);
+            }
+            x = xint(indirect2[i2]);
         }
         n1 = min(n, (fbn + 1) * BSIZE - off);
         rsect(x, buf);
