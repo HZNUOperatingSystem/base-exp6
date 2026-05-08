@@ -223,6 +223,10 @@ int command_entry(char* name) {
            strchr(name, '.') == 0;
 }
 
+int file_entry(char* name) {
+    return strcmp(name, ".") != 0 && strcmp(name, "console") != 0;
+}
+
 int match_prefix(char* name, char* prefix, int n) {
     int i;
 
@@ -233,16 +237,40 @@ int match_prefix(char* name, char* prefix, int n) {
     return 1;
 }
 
-void completecmd(char* buf, int* len, int* cursor, int nbuf) {
+int token_start(char* buf, int cursor) {
+    int start = cursor;
+
+    while (start > 0 && command_char(buf[start - 1]))
+        start--;
+    return start;
+}
+
+int first_token(char* buf, int start) {
+    for (int i = 0; i < start; i++) {
+        if (command_char(buf[i]))
+            return 0;
+    }
+    return 1;
+}
+
+void complete_token(char* buf, int* len, int* cursor, int nbuf) {
     char match[DIRSIZ + 1], name[DIRSIZ + 1];
     struct dirent de;
     int fd, matches = 0;
+    int start, token_len, command;
 
-    if (*cursor != *len || *len >= DIRSIZ)
+    if (*cursor < *len && command_char(buf[*cursor]))
         return;
 
-    for (int i = 0; i < *len; i++) {
-        if (!command_char(buf[i]))
+    start = token_start(buf, *cursor);
+    token_len = *cursor - start;
+    command = first_token(buf, start);
+
+    if (token_len >= DIRSIZ)
+        return;
+
+    for (int i = start; i < *cursor; i++) {
+        if (buf[i] == '/')
             return;
     }
 
@@ -253,7 +281,9 @@ void completecmd(char* buf, int* len, int* cursor, int nbuf) {
         if (de.inum == 0)
             continue;
         direntname(&de, name);
-        if (!command_entry(name) || !match_prefix(name, buf, *len))
+        if ((command && !command_entry(name)) || (!command && !file_entry(name)))
+            continue;
+        if (!match_prefix(name, buf + start, token_len))
             continue;
         strcpy(match, name);
         matches++;
@@ -261,12 +291,11 @@ void completecmd(char* buf, int* len, int* cursor, int nbuf) {
     close(fd);
 
     if (matches == 1) {
-        char* suffix = match + *len;
+        char* suffix = match + token_len;
         int n = strlen(suffix);
 
-        if (*len + n < nbuf) {
+        if (*len + n < nbuf)
             insert_bytes(buf, len, cursor, nbuf, suffix, n);
-        }
     }
 }
 
@@ -351,7 +380,7 @@ int getcmd(char* buf, int nbuf) {
         }
 
         if (c == '\t') {
-            completecmd(buf, &len, &cursor, nbuf);
+            complete_token(buf, &len, &cursor, nbuf);
             redraw(buf, len, cursor);
             continue;
         }
