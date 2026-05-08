@@ -192,9 +192,9 @@ $(MKFS): tools/mkfs.c $(wildcard $(I)/*.h)
 	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
 	$(Q)gcc -Wno-unknown-attributes $(MKFS_CPPFLAGS) -o $@ $<
 
-$(FS_IMG): $(MKFS) README.md $(UPROGS)
+$(FS_IMG): $(MKFS) $(UPROGS)
 	$(ECHO) "$(COLOR_MKFS)MKFS  $(NC)$@"
-	$(Q)$(MKFS) $@ README.md $(UPROGS)
+	$(Q)$(MKFS) $@ $(UPROGS)
 
 .PHONY: fs.img
 fs.img: $(FS_IMG)
