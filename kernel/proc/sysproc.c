@@ -68,3 +68,5 @@ uint64 sys_consolemode(void) {
     consolesetraw(raw);
     return 0;
 }
+
+uint64 sys_freemem(void) { return kfreemem(); }

@@ -22,6 +22,7 @@ int dup(int);
 int getpid(void);
 int shutdown(void);
 int consolemode(int);
+uint64 freemem(void);
 char* sys_sbrk(int, int);
 
 // ulib.c

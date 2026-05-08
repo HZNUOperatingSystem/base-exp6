@@ -80,6 +80,7 @@ extern uint64 sys_write(void);
 extern uint64 sys_close(void);
 extern uint64 sys_shutdown(void);
 extern uint64 sys_consolemode(void);
+extern uint64 sys_freemem(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -91,6 +92,7 @@ static uint64 (*syscalls[])(void) = {
     [SYS_open] sys_open,   [SYS_write] sys_write,   [SYS_close] sys_close,
     [SYS_shutdown] sys_shutdown,
     [SYS_consolemode] sys_consolemode,
+    [SYS_freemem] sys_freemem,
 };
 
 void syscall(void) {

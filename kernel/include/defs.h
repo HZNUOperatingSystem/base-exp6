@@ -58,6 +58,7 @@ void stati(struct inode*, struct stat*);
 void* kalloc(void);
 void kfree(void*);
 void kinit(void);
+uint64 kfreemem(void);
 
 // printf.c
 int printf(char*, ...) __attribute__((format(printf, 1, 2)));
