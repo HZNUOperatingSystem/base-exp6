@@ -15,19 +15,12 @@ awk '
   /^#define[[:space:]]+SYS_[[:alnum:]_]+[[:space:]]+[0-9]+/ {
     symbol = $2
     sub(/^SYS_/, "", symbol)
-    syscalls[$3] = symbol
-  }
+    name = symbol == "sbrk" ? "sys_sbrk" : symbol
 
-  END {
-    for (i = 1; i in syscalls; i++) {
-      symbol = syscalls[i]
-      name = symbol == "sbrk" ? "sys_sbrk" : symbol
-
-      print ".global " name
-      print name ":"
-      print " li a7, SYS_" symbol
-      print " ecall"
-      print " ret"
-    }
+    print ".global " name
+    print name ":"
+    print " li a7, SYS_" symbol
+    print " ecall"
+    print " ret"
   }
 ' "$1"

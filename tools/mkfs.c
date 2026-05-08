@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #define stat xv6_stat // avoid clash with host struct stat
+#include "file.h"
 #include "fs.h"
 #include "param.h"
 #include "stat.h"
@@ -42,7 +43,7 @@ void wsect(uint, void*);
 void winode(uint, struct dinode*);
 void rinode(uint inum, struct dinode* ip);
 void rsect(uint sec, void* buf);
-uint ialloc(ushort type);
+uint ialloc(ushort type, ushort major, ushort minor);
 void iappend(uint inum, void* p, int n);
 void die(const char*);
 
@@ -112,7 +113,7 @@ int main(int argc, char* argv[]) {
     memmove(buf, &sb, sizeof(sb));
     wsect(1, buf);
 
-    rootino = ialloc(T_DIR);
+    rootino = ialloc(T_DIR, 0, 0);
     assert(rootino == ROOTINO);
 
     bzero(&de, sizeof(de));
@@ -123,6 +124,12 @@ int main(int argc, char* argv[]) {
     bzero(&de, sizeof(de));
     de.inum = xshort(rootino);
     strcpy(de.name, "..");
+    iappend(rootino, &de, sizeof(de));
+
+    inum = ialloc(T_DEVICE, CONSOLE, 0);
+    bzero(&de, sizeof(de));
+    de.inum = xshort(inum);
+    strncpy(de.name, "console", DIRSIZ);
     iappend(rootino, &de, sizeof(de));
 
     for (i = 2; i < argc; i++) {
@@ -141,7 +148,7 @@ int main(int argc, char* argv[]) {
 
         assert(strlen(shortname) <= DIRSIZ);
 
-        inum = ialloc(T_FILE);
+        inum = ialloc(T_FILE, 0, 0);
 
         bzero(&de, sizeof(de));
         de.inum = xshort(inum);
@@ -203,12 +210,14 @@ void rsect(uint sec, void* buf) {
         die("read");
 }
 
-uint ialloc(ushort type) {
+uint ialloc(ushort type, ushort major, ushort minor) {
     uint inum = freeinode++;
     struct dinode din;
 
     bzero(&din, sizeof(din));
     din.type = xshort(type);
+    din.major = xshort(major);
+    din.minor = xshort(minor);
     din.nlink = xshort(1);
     din.size = xint(0);
     winode(inum, &din);
