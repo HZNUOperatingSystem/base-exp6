@@ -137,31 +137,35 @@ kernel: $(KERNEL)
 
 # MARK: - user targets
 
-USER_LIB_SRCS = $(addprefix $(U)/,ulib.c printf.c umalloc.c)
+USER_BIN_DIR = $(U)/bin
+USER_LIB_DIR = $(U)/lib
+USER_USYS_GEN = scripts/gen_usys.sh
+
+USER_LIB_SRCS = $(wildcard $(USER_LIB_DIR)/*.c)
 USER_LIB_OBJS = $(patsubst $(U)/%.c,$(BUILD_DIR)/$(U)/%.o,$(USER_LIB_SRCS))
-USYS_S = $(BUILD_DIR)/$(U)/usys.S
-USYS_OBJ = $(BUILD_DIR)/$(U)/usys.o
+USYS_S = $(BUILD_DIR)/$(U)/lib/usys.S
+USYS_OBJ = $(BUILD_DIR)/$(U)/lib/usys.o
 ULIB = $(USER_LIB_OBJS) $(USYS_OBJ)
 
-USER_PROG_SRCS = $(filter-out $(USER_LIB_SRCS),$(wildcard $(U)/*.c))
-UPROGS = $(patsubst $(U)/%.c,$(BUILD_DIR)/$(U)/_%,$(USER_PROG_SRCS))
+USER_PROG_SRCS = $(wildcard $(USER_BIN_DIR)/*.c)
+UPROGS = $(patsubst $(USER_BIN_DIR)/%.c,$(BUILD_DIR)/$(U)/_%,$(USER_PROG_SRCS))
 
 $(BUILD_DIR)/$(U)/%.o: $(U)/%.c
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
 	$(Q)$(CC) $(CFLAGS) $(USER_CPPFLAGS) -c -o $@ $<
 
-$(USYS_S): $(U)/usys.pl
+$(USYS_S): $(USER_USYS_GEN) $(I)/syscall.h
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_AS)  GEN $(NC)$@"
-	$(Q)perl $< > $@
+	$(Q)sh $(USER_USYS_GEN) $(I)/syscall.h > $@
 
 $(USYS_OBJ): $(USYS_S)
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_AS)  AS  $(NC)$@"
 	$(Q)$(CC) $(CFLAGS) $(USER_CPPFLAGS) -c -o $@ $<
 
-$(BUILD_DIR)/$(U)/_%: $(BUILD_DIR)/$(U)/%.o $(ULIB) $(USER_LD)
+$(BUILD_DIR)/$(U)/_%: $(BUILD_DIR)/$(U)/bin/%.o $(ULIB) $(USER_LD)
 	$(ECHO) "$(COLOR_LD)  LD  $(NC)$@"
 	$(Q)$(LD) $(LDFLAGS) -T $(USER_LD) -o $@ $< $(ULIB)
 	$(Q)$(OBJDUMP) -S $@ > $(BUILD_DIR)/$(U)/$*.asm
