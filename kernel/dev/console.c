@@ -53,6 +53,62 @@ struct {
     uint e; // Edit index
 } cons;
 
+int utf8_char_len(uint end) {
+    if (end <= cons.w)
+        return 0;
+
+    uint idx = end - 1;
+    int n = 1;
+
+    while (idx > cons.w && (cons.buf[idx % INPUT_BUF_SIZE] & 0xC0) == 0x80) {
+        idx--;
+        n++;
+    }
+    return n;
+}
+
+uint utf8_decode(uint end, int len) {
+    unsigned char c0 = cons.buf[(end - len) % INPUT_BUF_SIZE];
+
+    if (len == 1)
+        return c0;
+
+    uint r = 0;
+    if (len == 2)
+        r = c0 & 0x1F;
+    else if (len == 3)
+        r = c0 & 0x0F;
+    else if (len == 4)
+        r = c0 & 0x07;
+    else
+        return c0;
+
+    for (int i = 1; i < len; i++) {
+        unsigned char c = cons.buf[(end - len + i) % INPUT_BUF_SIZE];
+        if ((c & 0xC0) != 0x80)
+            return c0;
+        r = (r << 6) | (c & 0x3F);
+    }
+    return r;
+}
+
+int utf8_display_width(uint rune) {
+    if (rune < 0x80)
+        return 1;
+    if ((rune >= 0x1100 && rune <= 0x115F) ||
+        (rune >= 0x2329 && rune <= 0x232A) ||
+        (rune >= 0x2E80 && rune <= 0xA4CF) ||
+        (rune >= 0xAC00 && rune <= 0xD7A3) ||
+        (rune >= 0xF900 && rune <= 0xFAFF) ||
+        (rune >= 0xFE10 && rune <= 0xFE19) ||
+        (rune >= 0xFE30 && rune <= 0xFE6F) ||
+        (rune >= 0xFF00 && rune <= 0xFF60) ||
+        (rune >= 0xFFE0 && rune <= 0xFFE6) ||
+        (rune >= 0x20000 && rune <= 0x3FFFD))
+        return 2;
+    return 1;
+}
+
 //
 // user write() system calls to the console go here.
 // uses sleep() and UART interrupts.
@@ -144,15 +200,25 @@ void consoleintr(int c) {
     case C('U'): // Kill line.
         while (cons.e != cons.w &&
                cons.buf[(cons.e - 1) % INPUT_BUF_SIZE] != '\n') {
-            cons.e--;
-            consputc(BACKSPACE);
+            int len = utf8_char_len(cons.e);
+            int width = utf8_display_width(utf8_decode(cons.e, len));
+
+            cons.e -= len;
+            while (width-- > 0) {
+                consputc(BACKSPACE);
+            }
         }
         break;
     case C('H'): // Backspace
     case '\x7f': // Delete key
         if (cons.e != cons.w) {
-            cons.e--;
-            consputc(BACKSPACE);
+            int len = utf8_char_len(cons.e);
+            int width = utf8_display_width(utf8_decode(cons.e, len));
+
+            cons.e -= len;
+            while (width-- > 0) {
+                consputc(BACKSPACE);
+            }
         }
         break;
     default:
