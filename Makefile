@@ -115,8 +115,8 @@ clean:
 
 KERNEL = $(BUILD_DIR)/kernel.elf
 
-KERNEL_C_SRCS = $(wildcard $(K)/*.c)
-KERNEL_S_SRCS = $(wildcard $(K)/*.S) $(wildcard $(K)/riscv/*.S)
+KERNEL_C_SRCS = $(wildcard $(K)/*.c $(K)/*/*.c)
+KERNEL_S_SRCS = $(wildcard $(K)/*.S $(K)/*/*.S)
 
 KERNEL_C_OBJS = $(patsubst $(K)/%.c,$(BUILD_DIR)/$(K)/%.o,$(KERNEL_C_SRCS))
 KERNEL_S_OBJS = $(patsubst $(K)/%.S,$(BUILD_DIR)/$(K)/%.o,$(KERNEL_S_SRCS))
