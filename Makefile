@@ -60,10 +60,14 @@ I=include
 BUILD_DIR=build
 LINKER_DIR=linker
 
+
 include config.mk
 
 KERNEL_LD=$(LINKER_DIR)/kernel.ld
 USER_LD=$(LINKER_DIR)/user.ld
+
+# (optional) count of parallel jobs
+JOBS ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
 # qemu
 QEMU ?= qemu-system-riscv64
@@ -102,6 +106,10 @@ CFLAGS += $(shell $(CC) -dumpspecs 2>/dev/null | grep -q 'no-pie' && echo '-fno-
 
 .PHONY: all
 all: kernel fs.img
+
+.PHONY: fast
+fast:
+	$(Q)$(MAKE) -j$(JOBS) all
 
 .PHONY: toolchain-info
 toolchain-info:
