@@ -102,8 +102,8 @@ main(int argc, char *argv[])
   sb.inodestart = xint(2+nlog);
   sb.bmapstart = xint(2+nlog+ninodeblocks);
 
-  printf("nmeta %d (boot, super, log blocks %u, inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
-         nmeta, nlog, ninodeblocks, nbitmap, nblocks, FSSIZE);
+  // printf("nmeta %d (boot, super, log blocks %u, inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
+  //        nmeta, nlog, ninodeblocks, nbitmap, nblocks, FSSIZE);
 
   freeblock = nmeta;     // the first free block that we can allocate
 
@@ -142,7 +142,7 @@ main(int argc, char *argv[])
       shortname += 1;
 
     assert(strlen(shortname) <= DIRSIZ);
-    
+
     inum = ialloc(T_FILE);
 
     bzero(&de, sizeof(de));
@@ -233,13 +233,13 @@ balloc(int used)
   uchar buf[BSIZE];
   int i;
 
-  printf("balloc: first %d blocks have been allocated\n", used);
+  // printf("balloc: first %d blocks have been allocated\n", used);
   assert(used < BPB);
   bzero(buf, BSIZE);
   for(i = 0; i < used; i++){
     buf[i/8] = buf[i/8] | (0x1 << (i%8));
   }
-  printf("balloc: write bitmap block at sector %d\n", sb.bmapstart);
+  // printf("balloc: write bitmap block at sector %d\n", sb.bmapstart);
   wsect(sb.bmapstart, buf);
 }
 

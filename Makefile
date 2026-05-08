@@ -18,15 +18,21 @@ ifneq ($(shell tput colors 2>/dev/null),)
 	COLOR_CC   := $(ESC)0;34m
 	COLOR_AS   := $(ESC)0;33m
 	COLOR_LD   := $(ESC)0;32m
+	COLOR_CMD  := $(ESC)0;90m
 	COLOR_MKFS := $(ESC)0;35m
 	COLOR_RUN  := $(ESC)0;36m
 	COLOR_OK   := $(ESC)0;32m
 	COLOR_ERR  := $(ESC)0;31m
 else
 	COLOR_CC = COLOR_AS = COLOR_LD = \
-	COLOR_MKFS = COLOR_RUN = COLOR_OK = \
+	COLOR_CMD = COLOR_MKFS = COLOR_RUN = COLOR_OK = \
 	COLOR_ERR = NC =
 endif
+
+define RUN
+	@echo "$(COLOR_CMD) CMD $(NC)$(1)"
+	@$(1)
+endef
 
 # MARK: - toolchain
 
@@ -103,7 +109,7 @@ toolchain-info:
 
 .PHONY: clean
 clean:
-	rm -rf $(BUILD_DIR)
+	$(call RUN,rm -rf $(BUILD_DIR))
 
 # MARK: - kernel targets
 
@@ -181,7 +187,7 @@ user: $(UPROGS)
 MKFS = $(BUILD_DIR)/mkfs/mkfs
 FS_IMG = $(BUILD_DIR)/fs.img
 
-$(MKFS): mkfs/mkfs.c $(wildcard $(I)/*.h)
+$(MKFS): tools/mkfs.c $(wildcard $(I)/*.h)
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
 	$(Q)gcc -Wno-unknown-attributes $(MKFS_CPPFLAGS) -o $@ $<
