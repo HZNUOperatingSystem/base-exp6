@@ -20,6 +20,7 @@ int open(const char*, int);
 int fstat(int fd, struct stat*);
 int dup(int);
 int getpid(void);
+int shutdown(void);
 char* sys_sbrk(int, int);
 
 // ulib.c

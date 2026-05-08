@@ -56,3 +56,7 @@ uint64 sys_kill(void) {
     argint(0, &pid);
     return kkill(pid);
 }
+
+uint64 sys_shutdown(void) {
+    poweroff();
+}

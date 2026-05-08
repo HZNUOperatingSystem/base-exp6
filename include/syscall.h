@@ -15,5 +15,6 @@
 #define SYS_open 15
 #define SYS_write 16
 #define SYS_close 21
+#define SYS_shutdown 22
 
 #endif

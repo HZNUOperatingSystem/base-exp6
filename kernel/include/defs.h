@@ -63,6 +63,9 @@ int printf(char*, ...) __attribute__((format(printf, 1, 2)));
 void panic(char*) __attribute__((noreturn));
 void printfinit(void);
 
+// power.c
+void poweroff(void) __attribute__((noreturn));
+
 // proc.c
 int cpuid(void);
 void kexit(int);

@@ -78,6 +78,7 @@ extern uint64 sys_sbrk(void);
 extern uint64 sys_open(void);
 extern uint64 sys_write(void);
 extern uint64 sys_close(void);
+extern uint64 sys_shutdown(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -87,6 +88,7 @@ static uint64 (*syscalls[])(void) = {
     [SYS_fstat] sys_fstat,
     [SYS_dup] sys_dup,     [SYS_getpid] sys_getpid, [SYS_sbrk] sys_sbrk,
     [SYS_open] sys_open,   [SYS_write] sys_write,   [SYS_close] sys_close,
+    [SYS_shutdown] sys_shutdown,
 };
 
 void syscall(void) {
