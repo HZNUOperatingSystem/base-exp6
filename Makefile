@@ -59,6 +59,10 @@ include config.mk
 KERNEL_LD=$(LINKER_DIR)/kernel.ld
 USER_LD=$(LINKER_DIR)/user.ld
 
+# qemu
+QEMU ?= qemu-system-riscv64
+MIN_QEMU_VERSION ?= 7.2
+
 # compiler flags
 CFLAGS = -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 CFLAGS += -march=rv64gc -mabi=lp64
@@ -140,9 +144,7 @@ USYS_OBJ = $(BUILD_DIR)/$(U)/usys.o
 ULIB = $(USER_LIB_OBJS) $(USYS_OBJ)
 
 USER_PROG_SRCS = $(filter-out $(USER_LIB_SRCS),$(wildcard $(U)/*.c))
-USER_NORMAL_SRCS = $(filter-out $(U)/forktest.c,$(USER_PROG_SRCS))
-USER_NORMAL_PROGS = $(patsubst $(U)/%.c,$(BUILD_DIR)/$(U)/_%,$(USER_NORMAL_SRCS))
-UPROGS = $(USER_NORMAL_PROGS) $(BUILD_DIR)/$(U)/_forktest
+UPROGS = $(patsubst $(U)/%.c,$(BUILD_DIR)/$(U)/_%,$(USER_PROG_SRCS))
 
 $(BUILD_DIR)/$(U)/%.o: $(U)/%.c
 	@mkdir -p $(@D)
@@ -164,11 +166,6 @@ $(BUILD_DIR)/$(U)/_%: $(BUILD_DIR)/$(U)/%.o $(ULIB) $(USER_LD)
 	$(Q)$(LD) $(LDFLAGS) -T $(USER_LD) -o $@ $< $(ULIB)
 	$(Q)$(OBJDUMP) -S $@ > $(BUILD_DIR)/$(U)/$*.asm
 	$(Q)$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(BUILD_DIR)/$(U)/$*.sym
-
-$(BUILD_DIR)/$(U)/_forktest: $(BUILD_DIR)/$(U)/forktest.o $(BUILD_DIR)/$(U)/ulib.o $(USYS_OBJ)
-	$(ECHO) "$(COLOR_LD)  LD  $(NC)$@"
-	$(Q)$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
-	$(Q)$(OBJDUMP) -S $@ > $(BUILD_DIR)/$(U)/forktest.asm
 
 .PHONY: user
 user: $(UPROGS)

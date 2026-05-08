@@ -1,7 +1,6 @@
 #include "types.h"
 #include "stat.h"
 #include "fcntl.h"
-#include "riscv.h"
 #include "vm.h"
 #include "user.h"
 
@@ -158,4 +157,3 @@ char *
 sbrklazy(int n) {
   return sys_sbrk(n, SBRK_LAZY);
 }
-
