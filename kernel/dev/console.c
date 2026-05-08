@@ -51,6 +51,7 @@ struct {
     uint r; // Read index
     uint w; // Write index
     uint e; // Edit index
+    int raw;
 } cons;
 
 int utf8_char_len(uint end) {
@@ -193,10 +194,24 @@ int consoleread(int user_dst, uint64 dst, int n) {
 void consoleintr(int c) {
     acquire(&cons.lock);
 
-    switch (c) {
-    case C('P'): // Print process list.
+    if (c == C('P')) {
         procdump();
-        break;
+        release(&cons.lock);
+        return;
+    }
+
+    if (cons.raw) {
+        if (c != 0 && cons.e - cons.r < INPUT_BUF_SIZE) {
+            c = (c == '\r') ? '\n' : c;
+            cons.buf[cons.e++ % INPUT_BUF_SIZE] = c;
+            cons.w = cons.e;
+            wakeup(&cons.r);
+        }
+        release(&cons.lock);
+        return;
+    }
+
+    switch (c) {
     case C('U'): // Kill line.
         while (cons.e != cons.w &&
                cons.buf[(cons.e - 1) % INPUT_BUF_SIZE] != '\n') {
@@ -241,6 +256,12 @@ void consoleintr(int c) {
         break;
     }
 
+    release(&cons.lock);
+}
+
+void consolesetraw(int raw) {
+    acquire(&cons.lock);
+    cons.raw = raw != 0;
     release(&cons.lock);
 }
 

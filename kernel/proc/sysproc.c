@@ -60,3 +60,11 @@ uint64 sys_kill(void) {
 uint64 sys_shutdown(void) {
     poweroff();
 }
+
+uint64 sys_consolemode(void) {
+    int raw;
+
+    argint(0, &raw);
+    consolesetraw(raw);
+    return 0;
+}

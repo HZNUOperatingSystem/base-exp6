@@ -21,6 +21,7 @@ int fstat(int fd, struct stat*);
 int dup(int);
 int getpid(void);
 int shutdown(void);
+int consolemode(int);
 char* sys_sbrk(int, int);
 
 // ulib.c
