@@ -1,3 +1,13 @@
+### User Library Cleanup and Debug Flow
+
+2026-05-09, with [diff](https://github.com/utakotoba/xv6-riscv/compare/bb4759cc514da4616a84e5bb8bbe74893109ac56...2b9d0c7b56e34cb5972d57737d38df70c774a280)
+
+Compared with [bb4759c](https://github.com/utakotoba/xv6-riscv/tree/bb4759cc514da4616a84e5bb8bbe74893109ac56), this update tidies userland reuse and improves debugging workflow:
+
+- Extracted reusable user helpers into `ctype`, `io`, `math`, `term`, and `utf8` libraries.
+- Slimmed `sh` and `llminfer` around those shared helpers while keeping shell and inference logic local.
+- Added DEBUG-controlled QEMU GDB stub support, generated `.gdbinit`, and a `make debug` target.
+
 ### LLM Runtime, Larger Images, and Shell Polish
 
 2026-05-09, with [diff](https://github.com/utakotoba/xv6-riscv/compare/f47d38ef288a48c3eb576df4e7c944cd7f3a690c...cf0fc2313ad636725ef6d059b1ec6aff19cec828)
