@@ -1,5 +1,7 @@
+#include "ctype.h"
 #include "utf8.h"
 #include "types.h"
+#include "user.h"
 
 int utf8_cont(char c) { return ((uchar)c & 0xC0) == 0x80; }
 
@@ -82,4 +84,12 @@ int utf8_text_width(char* buf, int start, int end) {
         start = next;
     }
     return width;
+}
+
+void utf8_safe_print(char* s) {
+    if (s == 0 || s[0] == 0)
+        return;
+    if (s[1] == 0 && !char_printable(s[0]) && !char_whitespace(s[0]))
+        return;
+    printf("%s", s);
 }

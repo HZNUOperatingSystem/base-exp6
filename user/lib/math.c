@@ -67,6 +67,22 @@ float cos_approx(float x) {
     return 1.0f - x2 * t3;
 }
 
+void softmax(float* x, int n) {
+    float max = x[0];
+    float sum = 0.0f;
+
+    for (int i = 1; i < n; i++) {
+        if (x[i] > max)
+            max = x[i];
+    }
+    for (int i = 0; i < n; i++) {
+        x[i] = exp_approx(x[i] - max);
+        sum += x[i];
+    }
+    for (int i = 0; i < n; i++)
+        x[i] /= sum;
+}
+
 // MARK: - helpers
 
 float exp_unit(float x) {

@@ -9,5 +9,6 @@ float sqrt_approx(float x);
 float exp_approx(float x);
 float sin_approx(float x);
 float cos_approx(float x);
+void softmax(float* x, int n);
 
 #endif

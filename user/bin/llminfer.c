@@ -1,8 +1,10 @@
+#include "ctype.h"
 #include "fcntl.h"
 #include "io.h"
 #include "math.h"
 #include "stat.h"
 #include "types.h"
+#include "utf8.h"
 #include "user.h"
 
 typedef struct {
@@ -59,12 +61,6 @@ typedef struct {
     int max_token_length;
     char byte_pieces[512];
 } tokenizer_s;
-
-int printable(char c) { return c >= 32 && c <= 126; }
-
-int whitespace(char c) {
-    return c == '\n' || c == '\r' || c == '\t' || c == ' ';
-}
 
 void map_weights(weights_s* w, config_s* p, float* ptr, int shared_weights) {
     int head_size = p->dim / p->n_heads;
@@ -206,22 +202,6 @@ void matmul(float* out, float* x, float* w, int n, int d) {
     }
 }
 
-void softmax(float* x, int n) {
-    float max = x[0];
-    float sum = 0.0f;
-
-    for (int i = 1; i < n; i++) {
-        if (x[i] > max)
-            max = x[i];
-    }
-    for (int i = 0; i < n; i++) {
-        x[i] = exp_approx(x[i] - max);
-        sum += x[i];
-    }
-    for (int i = 0; i < n; i++)
-        x[i] /= sum;
-}
-
 float* forward(transformer_s* t, int token, int pos) {
     config_s* p = &t->config;
     weights_s* w = &t->weights;
@@ -326,14 +306,6 @@ int sample_argmax(float* logits, int n) {
     return best;
 }
 
-int str_eq_len(char* a, char* b, int n) {
-    for (int i = 0; i < n; i++) {
-        if (a[i] != b[i])
-            return 0;
-    }
-    return a[n] == 0;
-}
-
 int vocab_lookup(tokenizer_s* t, char* s) {
     for (int i = 0; i < t->vocab_size; i++) {
         if (strcmp(t->vocab[i], s) == 0)
@@ -384,16 +356,6 @@ bad:
     exit(1);
 }
 
-int hex_val(char c) {
-    if (c >= '0' && c <= '9')
-        return c - '0';
-    if (c >= 'a' && c <= 'f')
-        return c - 'a' + 10;
-    if (c >= 'A' && c <= 'F')
-        return c - 'A' + 10;
-    return -1;
-}
-
 char* decode(tokenizer_s* t, int prev_token, int token) {
     char* piece = t->vocab[token];
 
@@ -410,14 +372,6 @@ char* decode(tokenizer_s* t, int prev_token, int token) {
     return piece;
 }
 
-void safe_print(char* piece) {
-    if (piece == 0 || piece[0] == 0)
-        return;
-    if (piece[1] == 0 && !printable(piece[0]) && !whitespace(piece[0]))
-        return;
-    printf("%s", piece);
-}
-
 void encode(tokenizer_s* t, char* text, int* tokens, int* n_tokens) {
     char piece[8];
     int dummy;
@@ -429,17 +383,9 @@ void encode(tokenizer_s* t, char* text, int* tokens, int* n_tokens) {
         tokens[(*n_tokens)++] = dummy;
 
     for (int i = 0; text[i]; i++) {
-        int len = 1;
+        int len = utf8_input_len(text[i]);
         int id;
 
-        if (((uchar)text[i] & 0x80) != 0) {
-            if (((uchar)text[i] & 0xE0) == 0xC0)
-                len = 2;
-            else if (((uchar)text[i] & 0xF0) == 0xE0)
-                len = 3;
-            else if (((uchar)text[i] & 0xF8) == 0xF0)
-                len = 4;
-        }
         memmove(piece, text + i, len);
         piece[len] = 0;
         id = vocab_lookup(t, piece);
@@ -511,7 +457,7 @@ void generate(
         if (pos >= n_prompt_tokens) {
             char* piece = decode(tokenizer, token, next);
 
-            safe_print(piece);
+            utf8_safe_print(piece);
             generated++;
         }
         token = next;
