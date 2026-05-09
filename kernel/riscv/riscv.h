@@ -43,6 +43,11 @@ static inline void w_mepc(uint64 x) {
 #define SSTATUS_UPIE (1L << 4) // User Previous Interrupt Enable
 #define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable
 #define SSTATUS_UIE (1L << 0)  // User Interrupt Enable
+#define SSTATUS_FS_MASK (3L << 13)
+#define SSTATUS_FS_OFF (0L << 13)
+#define SSTATUS_FS_INITIAL (1L << 13)
+#define SSTATUS_FS_CLEAN (2L << 13)
+#define SSTATUS_FS_DIRTY (3L << 13)
 
 static inline uint64 r_sstatus() {
     uint64 x;
@@ -53,6 +58,22 @@ static inline uint64 r_sstatus() {
 static inline void w_sstatus(uint64 x) {
     asm volatile("csrw sstatus, %0" : : "r"(x));
 }
+
+static inline void fpu_on(void) {
+    w_sstatus((r_sstatus() & ~SSTATUS_FS_MASK) | SSTATUS_FS_DIRTY);
+}
+
+static inline void fpu_off(void) {
+    w_sstatus((r_sstatus() & ~SSTATUS_FS_MASK) | SSTATUS_FS_OFF);
+}
+
+static inline uint32 r_fcsr(void) {
+    uint32 x;
+    asm volatile("frcsr %0" : "=r"(x));
+    return x;
+}
+
+static inline void w_fcsr(uint32 x) { asm volatile("fscsr %0" : : "r"(x)); }
 
 // Supervisor Interrupt Pending
 static inline uint64 r_sip() {

@@ -16,6 +16,25 @@ void kernelvec();
 
 extern int devintr();
 
+static int user_fpu_instruction(struct proc* p) {
+    uint inst;
+
+    if (copyin(p->pagetable, (char*)&inst, p->trapframe->epc, sizeof(inst)) < 0)
+        return 0;
+
+    switch (inst & 0x7f) {
+    case 0x07:
+    case 0x27:
+    case 0x43:
+    case 0x47:
+    case 0x4b:
+    case 0x4f:
+    case 0x53:
+        return 1;
+    }
+    return 0;
+}
+
 void trapinit(void) { initlock(&tickslock, "time"); }
 
 // set up to take exceptions and traps while in the kernel.
@@ -58,6 +77,8 @@ uint64 usertrap(void) {
         syscall();
     } else if ((which_dev = devintr()) != 0) {
         // ok
+    } else if (r_scause() == 2 && user_fpu_instruction(p)) {
+        fpu_handle_trap(p);
     } else if (
         (r_scause() == 15 || r_scause() == 13) &&
         vmfault(p->pagetable, r_stval(), (r_scause() == 13) ? 1 : 0) != 0
@@ -116,6 +137,8 @@ void prepare_return(void) {
     unsigned long x = r_sstatus();
     x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
     x |= SSTATUS_SPIE; // enable interrupts in user mode
+    x &= ~SSTATUS_FS_MASK;
+    x |= p->fpu_active ? SSTATUS_FS_DIRTY : SSTATUS_FS_OFF;
     w_sstatus(x);
 
     // set S Exception Program Counter to the saved user pc.

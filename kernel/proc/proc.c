@@ -147,6 +147,9 @@ static void freeproc(struct proc* p) {
     p->pagetable = 0;
     p->sz = 0;
     p->pid = 0;
+    memset(&p->fpu, 0, sizeof(p->fpu));
+    p->fpu_used = 0;
+    p->fpu_active = 0;
     p->parent = 0;
     p->name[0] = 0;
     p->chan = 0;
@@ -254,6 +257,11 @@ int kfork(void) {
 
     // copy saved user registers.
     *(np->trapframe) = *(p->trapframe);
+
+    fpu_save_proc(p);
+    np->fpu = p->fpu;
+    np->fpu_used = p->fpu_used;
+    np->fpu_active = 0;
 
     // Cause fork to return 0 in the child.
     np->trapframe->a0 = 0;
@@ -452,6 +460,7 @@ void sched(void) {
     if (intr_get())
         panic("sched interruptible");
 
+    fpu_save_proc(p);
     intena = mycpu()->intena;
     swtch(&p->context, &mycpu()->context);
     mycpu()->intena = intena;

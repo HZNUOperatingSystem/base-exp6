@@ -356,13 +356,11 @@ float* forward(transformer_s* t, int token, int pos) {
     int kv_mul = p->n_heads / p->n_kv_heads;
     float* x = s->x;
 
-    fprintf(2, "llminfer: forward pos=%d token=%d\n", pos, token);
     memcpy(x, w->token_embedding_table + token * dim, dim * sizeof(float));
 
     for (int l = 0; l < p->n_layers; l++) {
         int loff = l * p->seq_len * kv_dim;
 
-        fprintf(2, "llminfer: layer %d/%d\n", l + 1, p->n_layers);
         rmsnorm(s->xb, x, w->rms_att_weight + l * dim, dim);
         s->k = s->key_cache + loff + pos * kv_dim;
         s->v = s->value_cache + loff + pos * kv_dim;
@@ -437,7 +435,6 @@ float* forward(transformer_s* t, int token, int pos) {
 
     rmsnorm(x, x, w->rms_final_weight, dim);
     matmul(s->logits, x, w->wcls, p->dim, p->vocab_size);
-    fprintf(2, "llminfer: forward done pos=%d\n", pos);
     return s->logits;
 }
 
@@ -548,7 +545,6 @@ void encode(tokenizer_s* t, char* text, int* tokens, int* n_tokens) {
     char piece[8];
     int dummy;
 
-    fprintf(2, "llminfer: encode prompt \"%s\"\n", text);
     *n_tokens = 0;
     tokens[(*n_tokens)++] = 1;
     dummy = vocab_lookup(t, " ");
@@ -608,7 +604,6 @@ void encode(tokenizer_s* t, char* text, int* tokens, int* n_tokens) {
             tokens[i] = tokens[i + 1];
         (*n_tokens)--;
     }
-    fprintf(2, "llminfer: prompt tokens=%d\n", *n_tokens);
 }
 
 void generate(
@@ -622,19 +617,17 @@ void generate(
     int token;
     int next = 0;
     int pos = 0;
+    int generated = 0;
 
-    fprintf(2, "llminfer: generate steps=%d\n", steps);
     encode(tokenizer, prompt, prompt_tokens, &n_prompt_tokens);
     token = prompt_tokens[0];
     while (pos < steps) {
-        fprintf(2, "llminfer: step %d/%d begin\n", pos + 1, steps);
         float* logits = forward(t, token, pos);
 
         if (pos < n_prompt_tokens - 1)
             next = prompt_tokens[pos + 1];
         else
             next = sample_argmax(logits, t->config.vocab_size);
-        fprintf(2, "llminfer: step %d next=%d\n", pos + 1, next);
         pos++;
         if (next == 1)
             break;
@@ -642,11 +635,12 @@ void generate(
             char* piece = decode(tokenizer, token, next);
 
             safe_print(piece);
+            generated++;
         }
         token = next;
     }
     printf("\n");
-    fprintf(2, "llminfer: generate done pos=%d\n", pos);
+    fprintf(2, "llminfer: summary steps=%d generated=%d\n", pos, generated);
     free(prompt_tokens);
 }
 
@@ -668,7 +662,6 @@ int main(int argc, char** argv) {
     if (argc >= 5)
         prompt = argv[4];
 
-    fprintf(2, "llminfer: start\n");
     memset(&transformer, 0, sizeof(transformer));
     memset(&tokenizer, 0, sizeof(tokenizer));
     read_checkpoint(&transformer, argv[1]);
@@ -676,6 +669,5 @@ int main(int argc, char** argv) {
         steps = transformer.config.seq_len;
     read_tokenizer(&tokenizer, argv[2], transformer.config.vocab_size);
     generate(&transformer, &tokenizer, prompt, steps);
-    fprintf(2, "llminfer: done\n");
     exit(0);
 }

@@ -29,6 +29,11 @@ struct context {
     uint64 s11;
 };
 
+struct fpu_state {
+    uint64 f[32];
+    uint32 fcsr;
+};
+
 // Per-CPU state.
 struct cpu {
     struct proc* proc;      // The process running on this cpu, or null.
@@ -112,6 +117,9 @@ struct proc {
     pagetable_t pagetable;       // User page table
     struct trapframe* trapframe; // data page for trampoline.S
     struct context context;      // swtch() here to run process
+    struct fpu_state fpu;        // Saved floating-point registers
+    int fpu_used;                // Has this process initialized FPU state?
+    int fpu_active;              // Is this process's FPU state in hardware?
     struct file* ofile[NOFILE];  // Open files
     struct inode* cwd;           // Current directory
     char name[16];               // Process name (debugging)

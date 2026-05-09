@@ -65,6 +65,10 @@ int printf(char*, ...) __attribute__((format(printf, 1, 2)));
 void panic(char*) __attribute__((noreturn));
 void printfinit(void);
 
+// fpu.c
+void fpu_handle_trap(struct proc*);
+void fpu_save_proc(struct proc*);
+
 // power.c
 void poweroff(void) __attribute__((noreturn));
 
