@@ -1,6 +1,19 @@
+### LLM Runtime, Larger Images, and Shell Polish
+
+2026-05-09, with [diff](https://github.com/utakotoba/xv6-riscv/compare/f47d38ef288a48c3eb576df4e7c944cd7f3a690c...cf0fc2313ad636725ef6d059b1ec6aff19cec828)
+
+Compared with [f47d38e](https://github.com/utakotoba/xv6-riscv/tree/f47d38ef288a48c3eb576df4e7c944cd7f3a690c), this update prepares the stripped base for larger file-backed demos and floating-point user programs:
+
+- Added host-provided `files/` payload support for the filesystem image and a `make fast` shorthand for parallel builds.
+- Extended the flat filesystem image for large files with double-indirect blocks, a larger block budget, and mkfs bitmap handling across multiple bitmap blocks.
+- Added lazy user FPU support with per-process floating-point state, trap-time enablement, and RISC-V save/restore assembly.
+- Added `llminfer`, a compact xv6-native Llama2 runner.
+- Added `free` with a minimal `freemem` syscall for checking remaining memory from userland.
+- Improved shell handling for quoted arguments, file completion after commands, and lower-flicker UTF-8-aware editing/redraw paths.
+
 ### Flat Read-Only Base and Shell UX
 
-2026-05-08, with [diff](https://github.com/utakotoba/xv6-riscv/compare/418b737f431b80b69de4b94c17171e4f220ba629...38a79dcbe40ac8a96c2a5ea9881514c26175f2df)
+2026-05-08, with [diff](https://github.com/utakotoba/xv6-riscv/compare/418b737f431b80b69de4b94c17171e4f220ba629...d77b6a2863154972354a3787ce4d8fe10be9fcec)
 
 Compared with [418b737](https://github.com/utakotoba/xv6-riscv/tree/418b737f431b80b69de4b94c17171e4f220ba629), this update tightens the base system around a flat, read-only runtime image:
 
