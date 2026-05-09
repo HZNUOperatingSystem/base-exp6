@@ -21,6 +21,8 @@ int command_char(char c) {
     return c != 0 && c != ' ' && c != '\t' && c != '\r' && c != '\n';
 }
 
+int blank_char(char c) { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; }
+
 int utf8_cont(char c) { return ((uchar)c & 0xC0) == 0x80; }
 
 int utf8_input_len(char c) {
@@ -157,14 +159,23 @@ void redraw(char* buf, int len, int cursor) {
     write(2, out, n);
 }
 
-void insert_bytes(char* buf, int* len, int* cursor, int nbuf, char* s, int n) {
+void redraw_from(char* buf, int len, int cursor) {
+    int tail = text_width(buf, cursor, len);
+
+    write(2, buf + cursor, len - cursor);
+    write(2, "\033[K", 3);
+    move_cursor('D', tail);
+}
+
+int insert_bytes(char* buf, int* len, int* cursor, int nbuf, char* s, int n) {
     if (*len + n >= nbuf)
-        return;
+        return 0;
     memmove(buf + *cursor + n, buf + *cursor, *len - *cursor);
     memmove(buf + *cursor, s, n);
     *len += n;
     *cursor += n;
     buf[*len] = 0;
+    return n;
 }
 
 void delete_range(char* buf, int* len, int* cursor, int start, int end) {
@@ -240,7 +251,7 @@ int match_prefix(char* name, char* prefix, int n) {
 int token_start(char* buf, int cursor) {
     int start = cursor;
 
-    while (start > 0 && command_char(buf[start - 1]))
+    while (start > 0 && !blank_char(buf[start - 1]))
         start--;
     return start;
 }
@@ -253,29 +264,38 @@ int first_token(char* buf, int start) {
     return 1;
 }
 
-void complete_token(char* buf, int* len, int* cursor, int nbuf) {
+int complete_token(char* buf, int* len, int* cursor, int nbuf) {
     char match[DIRSIZ + 1], name[DIRSIZ + 1];
     struct dirent de;
     int fd, matches = 0;
-    int start, token_len, command;
+    int start, prefix_start, token_len, command;
+    char quote = 0;
 
-    if (*cursor < *len && command_char(buf[*cursor]))
-        return;
+    if (*cursor < *len && !blank_char(buf[*cursor]) && buf[*cursor] != '\'' &&
+        buf[*cursor] != '"')
+        return 0;
 
     start = token_start(buf, *cursor);
-    token_len = *cursor - start;
+    prefix_start = start;
+    if (buf[start] == '\'' || buf[start] == '"') {
+        quote = buf[start];
+        prefix_start = start + 1;
+        if (*cursor < *len && buf[*cursor] != quote)
+            return 0;
+    }
+    token_len = *cursor - prefix_start;
     command = first_token(buf, start);
 
     if (token_len >= DIRSIZ)
-        return;
+        return 0;
 
-    for (int i = start; i < *cursor; i++) {
+    for (int i = prefix_start; i < *cursor; i++) {
         if (buf[i] == '/')
-            return;
+            return 0;
     }
 
     if ((fd = open(".", O_RDONLY)) < 0)
-        return;
+        return 0;
 
     while (read(fd, &de, sizeof(de)) == sizeof(de)) {
         if (de.inum == 0)
@@ -283,7 +303,7 @@ void complete_token(char* buf, int* len, int* cursor, int nbuf) {
         direntname(&de, name);
         if ((command && !command_entry(name)) || (!command && !file_entry(name)))
             continue;
-        if (!match_prefix(name, buf + start, token_len))
+        if (!match_prefix(name, buf + prefix_start, token_len))
             continue;
         strcpy(match, name);
         matches++;
@@ -294,9 +314,9 @@ void complete_token(char* buf, int* len, int* cursor, int nbuf) {
         char* suffix = match + token_len;
         int n = strlen(suffix);
 
-        if (*len + n < nbuf)
-            insert_bytes(buf, len, cursor, nbuf, suffix, n);
+        return insert_bytes(buf, len, cursor, nbuf, suffix, n);
     }
+    return 0;
 }
 
 void runcmd(char** argv) {
@@ -372,7 +392,7 @@ int getcmd(char* buf, int nbuf) {
                     delete_range(
                         buf, &len, &cursor, cursor, nextchar(buf, cursor, len)
                     );
-                    redraw(buf, len, cursor);
+                    redraw_from(buf, len, cursor);
                 }
                 continue;
             }
@@ -380,8 +400,16 @@ int getcmd(char* buf, int nbuf) {
         }
 
         if (c == '\t') {
-            complete_token(buf, &len, &cursor, nbuf);
-            redraw(buf, len, cursor);
+            int old_cursor = cursor;
+            int old_len = len;
+            int n = complete_token(buf, &len, &cursor, nbuf);
+
+            if (n > 0) {
+                if (old_cursor == old_len)
+                    write(2, buf + old_cursor, n);
+                else
+                    redraw(buf, len, cursor);
+            }
             continue;
         }
         if (c == C('D')) {
@@ -397,10 +425,12 @@ int getcmd(char* buf, int nbuf) {
         if (c == C('H') || c == '\x7f') {
             if (cursor > 0) {
                 int start = prevchar(buf, cursor);
+                int width = text_width(buf, start, cursor);
 
                 delete_range(buf, &len, &cursor, start, cursor);
                 cursor = start;
-                redraw(buf, len, cursor);
+                move_cursor('D', width);
+                redraw_from(buf, len, cursor);
             }
             continue;
         }
@@ -412,6 +442,8 @@ int getcmd(char* buf, int nbuf) {
         }
 
         char input[4];
+        int old_cursor = cursor;
+        int old_len = len;
         int n = utf8_input_len(c);
 
         input[0] = c;
@@ -421,8 +453,12 @@ int getcmd(char* buf, int nbuf) {
                 break;
             }
         }
-        insert_bytes(buf, &len, &cursor, nbuf, input, n);
-        redraw(buf, len, cursor);
+        if (insert_bytes(buf, &len, &cursor, nbuf, input, n) > 0) {
+            if (old_cursor == old_len)
+                write(2, input, n);
+            else
+                redraw(buf, len, cursor);
+        }
     }
     save_history(buf, len);
     consolemode(0);
@@ -432,18 +468,32 @@ int getcmd(char* buf, int nbuf) {
 
 int parsecmd(char* buf, char** argv) {
     int argc = 0;
-    char* p = buf;
+    char* src = buf;
+    char* dst = buf;
 
-    while (*p) {
-        while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
-            *p++ = 0;
-        if (*p == 0)
+    while (*src) {
+        while (blank_char(*src))
+            src++;
+        if (*src == 0)
             break;
         if (argc >= MAXARGS - 1)
             panic("too many args");
-        argv[argc++] = p;
-        while (*p && *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n')
-            p++;
+        argv[argc++] = dst;
+        while (*src && !blank_char(*src)) {
+            if (*src == '\'' || *src == '"') {
+                char quote = *src++;
+
+                while (*src && *src != quote)
+                    *dst++ = *src++;
+                if (*src == quote)
+                    src++;
+            } else {
+                *dst++ = *src++;
+            }
+        }
+        if (blank_char(*src))
+            src++;
+        *dst++ = 0;
     }
     argv[argc] = 0;
     return argc;
