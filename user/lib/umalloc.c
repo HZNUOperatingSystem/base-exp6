@@ -6,25 +6,25 @@
 // Memory allocator by Kernighan and Ritchie,
 // The C programming Language, 2nd ed.  Section 8.7.
 
-typedef long Align;
+typedef long align_t;
 
 union header {
     struct {
         union header* ptr;
         uint size;
     } s;
-    Align x;
+    align_t x;
 };
 
-typedef union header Header;
+typedef union header header_u;
 
-static Header base;
-static Header* freep;
+static header_u base;
+static header_u* freep;
 
 void free(void* ap) {
-    Header *bp, *p;
+    header_u *bp, *p;
 
-    bp = (Header*)ap - 1;
+    bp = (header_u*)ap - 1;
     for (p = freep; !(bp > p && bp < p->s.ptr); p = p->s.ptr)
         if (p >= p->s.ptr && (bp > p || bp < p->s.ptr))
             break;
@@ -41,26 +41,26 @@ void free(void* ap) {
     freep = p;
 }
 
-static Header* morecore(uint nu) {
+static header_u* morecore(uint nu) {
     char* p;
-    Header* hp;
+    header_u* hp;
 
     if (nu < 4096)
         nu = 4096;
-    p = sbrk(nu * sizeof(Header));
+    p = sbrk(nu * sizeof(header_u));
     if (p == SBRK_ERROR)
         return 0;
-    hp = (Header*)p;
+    hp = (header_u*)p;
     hp->s.size = nu;
     free((void*)(hp + 1));
     return freep;
 }
 
 void* malloc(uint nbytes) {
-    Header *p, *prevp;
+    header_u *p, *prevp;
     uint nunits;
 
-    nunits = (nbytes + sizeof(Header) - 1) / sizeof(Header) + 1;
+    nunits = (nbytes + sizeof(header_u) - 1) / sizeof(header_u) + 1;
     if ((prevp = freep) == 0) {
         base.s.ptr = freep = prevp = &base;
         base.s.size = 0;

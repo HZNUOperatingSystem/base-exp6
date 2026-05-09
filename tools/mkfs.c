@@ -28,7 +28,7 @@
 
 int nbitmap = FSSIZE / BPB + 1;
 int ninodeblocks = NINODES / IPB + 1;
-int nlog = LOGBLOCKS + 1; // Header followed by LOGBLOCKS data blocks.
+int nlog = LOGBLOCKS + 1; // header_u followed by LOGBLOCKS data blocks.
 int nmeta;   // Number of meta blocks (boot, sb, nlog, inode, bitmap)
 int nblocks; // Number of data blocks
 
