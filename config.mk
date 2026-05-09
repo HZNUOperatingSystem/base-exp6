@@ -1,1 +1,2 @@
 CPUS ?= 4
+DEBUG ?= 0

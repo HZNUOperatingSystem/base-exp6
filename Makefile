@@ -72,6 +72,7 @@ JOBS ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 # qemu
 QEMU ?= qemu-system-riscv64
 MIN_QEMU_VERSION ?= 7.2
+GDBPORT ?= $(shell expr `id -u` % 5000 + 25000)
 
 # compiler flags
 CFLAGS = -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
@@ -215,6 +216,12 @@ QEMUOPTS = -machine virt -bios none -kernel $(KERNEL) -m 128M -smp $(CPUS) -nogr
 QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=$(FS_IMG),if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+QEMUGDB = $(shell if $(QEMU) -help 2>/dev/null | grep -q '^-gdb'; then echo "-gdb tcp::$(GDBPORT)"; else echo "-s -p $(GDBPORT)"; fi)
+
+ifeq ($(DEBUG),1)
+	QEMU_DEBUG_DEPS = .gdbinit
+	QEMU_DEBUG_OPTS = -S $(QEMUGDB)
+endif
 
 QEMU_VERSION = $(shell $(QEMU) --version 2>/dev/null | sed -nE '1s/.*QEMU emulator version ([0-9]+(\.[0-9]+)?).*/\1/p')
 
@@ -229,10 +236,23 @@ check-qemu-version:
 		exit 1; \
 	fi
 
-.PHONY: qemu
-qemu: check-qemu-version $(KERNEL) $(FS_IMG)
+.gdbinit: tools/gdbinit.tmpl-riscv
+	$(ECHO) "$(COLOR_CMD)GDBI  $(NC)$@"
+	$(Q)sed "s/:1234/:$(GDBPORT)/" $< > $@
+
+.PHONY: emulate
+emulate: check-qemu-version $(KERNEL) $(FS_IMG) $(QEMU_DEBUG_DEPS)
 	$(ECHO) "$(COLOR_RUN)QEMU  $(NC)$(KERNEL)"
-	$(Q)$(QEMU) $(QEMUOPTS)
+	$(if $(QEMU_DEBUG_OPTS),$(ECHO) "$(COLOR_OK)DEBUG $(NC)waiting for GDB on :$(GDBPORT); run 'make debug' in another session")
+	$(Q)$(QEMU) $(QEMUOPTS) $(QEMU_DEBUG_OPTS)
+
+.PHONY: debug
+debug: $(KERNEL) .gdbinit
+	$(ECHO) "$(COLOR_RUN)GDB   $(NC)$(GDB) :$(GDBPORT)"
+	$(Q)$(GDB) -nx -q \
+		-iex "set auto-load safe-path /" \
+		-iex "add-auto-load-safe-path $(shell pwd)" \
+		-x .gdbinit
 
 -include $(KERNEL_OBJS:.o=.d)
 -include $(USER_LIB_OBJS:.o=.d) $(USYS_OBJ:.o=.d)
