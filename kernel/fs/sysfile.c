@@ -151,8 +151,8 @@ uint64 sys_open(void) {
     }
     f->ip = ip;
     f->readable = !(omode & O_WRONLY);
-    f->writable = ip->type == T_DEVICE &&
-                  ((omode & O_WRONLY) || (omode & O_RDWR));
+    f->writable =
+        ip->type == T_DEVICE && ((omode & O_WRONLY) || (omode & O_RDWR));
 
     iunlock(ip);
 

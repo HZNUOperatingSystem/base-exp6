@@ -57,9 +57,7 @@ uint64 sys_kill(void) {
     return kkill(pid);
 }
 
-uint64 sys_shutdown(void) {
-    poweroff();
-}
+uint64 sys_shutdown(void) { poweroff(); }
 
 uint64 sys_consolemode(void) {
     int raw;

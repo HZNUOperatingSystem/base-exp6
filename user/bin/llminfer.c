@@ -115,11 +115,12 @@ float sin_approx(float x) {
     while (x < -PI)
         x += 2.0f * PI;
     x2 = x * x;
-    return x *
-           (1.0f -
-            x2 *
-                (1.0f / 6.0f -
-                 x2 * (1.0f / 120.0f - x2 * (1.0f / 5040.0f))));
+
+    float t1 = 1.0f / 5040.0f;          // 1/7!
+    float t2 = 1.0f / 120.0f - x2 * t1; // 1/5! - x²/7!
+    float t3 = 1.0f / 6.0f - x2 * t2;   // 1/3! - x²*(...)
+
+    return x * (1.0f - x2 * t3);
 }
 
 float cos_approx(float x) {
@@ -131,9 +132,7 @@ float cos_approx(float x) {
         x += 2.0f * PI;
     x2 = x * x;
     return 1.0f -
-           x2 *
-               (1.0f / 2.0f -
-                x2 * (1.0f / 24.0f - x2 * (1.0f / 720.0f)));
+           x2 * (1.0f / 2.0f - x2 * (1.0f / 24.0f - x2 * (1.0f / 720.0f)));
 }
 
 int printable(char c) { return c >= 32 && c <= 126; }
@@ -180,7 +179,8 @@ void alloc_state(state_s* s, config_s* p) {
 
     fprintf(
         2,
-        "llminfer: alloc state dim=%d hidden=%d layers=%d seq=%d kv_cache=%d KiB\n",
+        "llminfer: alloc state dim=%d hidden=%d layers=%d seq=%d kv_cache=%d "
+        "KiB\n",
         p->dim,
         p->hidden_dim,
         p->n_layers,
@@ -194,10 +194,8 @@ void alloc_state(state_s* s, config_s* p) {
     s->hb = xmalloc(p->hidden_dim * sizeof(float));
     s->hb2 = xmalloc(p->hidden_dim * sizeof(float));
     s->q = xmalloc(p->dim * sizeof(float));
-    s->key_cache =
-        xmalloc(p->n_layers * p->seq_len * kv_dim * sizeof(float));
-    s->value_cache =
-        xmalloc(p->n_layers * p->seq_len * kv_dim * sizeof(float));
+    s->key_cache = xmalloc(p->n_layers * p->seq_len * kv_dim * sizeof(float));
+    s->value_cache = xmalloc(p->n_layers * p->seq_len * kv_dim * sizeof(float));
     s->att = xmalloc(p->n_heads * p->seq_len * sizeof(float));
     s->logits = xmalloc(p->vocab_size * sizeof(float));
     fprintf(2, "llminfer: state ready\n");
@@ -217,7 +215,12 @@ void read_checkpoint(transformer_s* t, char* path) {
         fprintf(2, "llminfer: cannot stat %s\n", path);
         exit(1);
     }
-    fprintf(2, "llminfer: open checkpoint %s (%d KiB)\n", path, (int)(st.size / 1024));
+    fprintf(
+        2,
+        "llminfer: open checkpoint %s (%d KiB)\n",
+        path,
+        (int)(st.size / 1024)
+    );
     if (read_exact(fd, &t->config, sizeof(config_s)) < 0) {
         fprintf(2, "llminfer: bad checkpoint header\n");
         exit(1);
@@ -227,7 +230,8 @@ void read_checkpoint(transformer_s* t, char* path) {
         t->config.vocab_size = -t->config.vocab_size;
     fprintf(
         2,
-        "llminfer: config dim=%d hidden=%d layers=%d heads=%d kv_heads=%d vocab=%d seq=%d shared=%d\n",
+        "llminfer: config dim=%d hidden=%d layers=%d heads=%d kv_heads=%d "
+        "vocab=%d seq=%d shared=%d\n",
         t->config.dim,
         t->config.hidden_dim,
         t->config.n_layers,
@@ -239,9 +243,14 @@ void read_checkpoint(transformer_s* t, char* path) {
     );
 
     data_size = (uint)(st.size - sizeof(config_s));
-    fprintf(2, "llminfer: alloc checkpoint weights %d KiB\n", (int)(data_size / 1024));
+    fprintf(
+        2,
+        "llminfer: alloc checkpoint weights %d KiB\n",
+        (int)(data_size / 1024)
+    );
     t->data = xmalloc(data_size);
-    if (read_exact_progress(fd, t->data, data_size, "llminfer", "checkpoint") < 0) {
+    if (read_exact_progress(fd, t->data, data_size, "llminfer", "checkpoint") <
+        0) {
         fprintf(2, "llminfer: short checkpoint read\n");
         exit(1);
     }
@@ -336,9 +345,8 @@ float* forward(transformer_s* t, int token, int pos) {
             float* xb = s->xb + h * head_size;
 
             for (int ts = 0; ts <= pos; ts++) {
-                float* k =
-                    s->key_cache + loff + ts * kv_dim +
-                    (h / kv_mul) * head_size;
+                float* k = s->key_cache + loff + ts * kv_dim +
+                           (h / kv_mul) * head_size;
                 float score = 0.0f;
 
                 for (int i = 0; i < head_size; i++)
@@ -348,9 +356,8 @@ float* forward(transformer_s* t, int token, int pos) {
             softmax(att, pos + 1);
             memset(xb, 0, head_size * sizeof(float));
             for (int ts = 0; ts <= pos; ts++) {
-                float* v =
-                    s->value_cache + loff + ts * kv_dim +
-                    (h / kv_mul) * head_size;
+                float* v = s->value_cache + loff + ts * kv_dim +
+                           (h / kv_mul) * head_size;
                 float a = att[ts];
 
                 for (int i = 0; i < head_size; i++)
@@ -439,7 +446,9 @@ void read_tokenizer(tokenizer_s* t, char* path, int vocab_size) {
             goto bad;
         t->vocab[i][len] = 0;
         if ((i + 1) % 4096 == 0 || i + 1 == vocab_size)
-            fprintf(2, "llminfer: tokenizer %d/%d entries\n", i + 1, vocab_size);
+            fprintf(
+                2, "llminfer: tokenizer %d/%d entries\n", i + 1, vocab_size
+            );
     }
     close(fd);
     fprintf(2, "llminfer: tokenizer ready max_token=%d\n", t->max_token_length);

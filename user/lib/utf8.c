@@ -1,5 +1,5 @@
-#include "types.h"
 #include "utf8.h"
+#include "types.h"
 
 int utf8_cont(char c) { return ((uchar)c & 0xC0) == 0x80; }
 

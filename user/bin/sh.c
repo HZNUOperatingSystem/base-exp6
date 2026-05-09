@@ -4,8 +4,8 @@
 #include "fs.h"
 #include "term.h"
 #include "types.h"
-#include "utf8.h"
 #include "user.h"
+#include "utf8.h"
 
 #define MAXARGS 10
 #define HISTSIZE 16
