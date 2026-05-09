@@ -1,4 +1,5 @@
 #include "fcntl.h"
+#include "io.h"
 #include "stat.h"
 #include "types.h"
 #include "user.h"
@@ -60,64 +61,6 @@ typedef struct {
     int max_token_length;
     char byte_pieces[512];
 } tokenizer_s;
-
-int read_exact(int fd, void* data, uint n) {
-    char* p = data;
-    uint off = 0;
-
-    while (off < n) {
-        int chunk = n - off;
-        int cc;
-
-        if (chunk > 4096)
-            chunk = 4096;
-        cc = read(fd, p + off, chunk);
-        if (cc <= 0)
-            return -1;
-        off += cc;
-    }
-    return 0;
-}
-
-int read_exact_progress(int fd, void* data, uint n, char* label) {
-    char* p = data;
-    uint off = 0;
-    uint last_log = 0;
-
-    while (off < n) {
-        int chunk = n - off;
-        int cc;
-
-        if (chunk > 4096)
-            chunk = 4096;
-        cc = read(fd, p + off, chunk);
-        if (cc <= 0)
-            return -1;
-        off += cc;
-        if (off == n || off - last_log >= 4 * 1024 * 1024) {
-            fprintf(
-                2,
-                "llminfer: read %s %d/%d KiB\n",
-                label,
-                (int)(off / 1024),
-                (int)(n / 1024)
-            );
-            last_log = off;
-        }
-    }
-    return 0;
-}
-
-void* xmalloc(uint n) {
-    void* p = malloc(n);
-
-    if (p == 0) {
-        fprintf(2, "llminfer: malloc failed\n");
-        exit(1);
-    }
-    memset(p, 0, n);
-    return p;
-}
 
 float absf(float x) { return x < 0.0f ? -x : x; }
 
@@ -298,7 +241,7 @@ void read_checkpoint(transformer_s* t, char* path) {
     data_size = (uint)(st.size - sizeof(config_s));
     fprintf(2, "llminfer: alloc checkpoint weights %d KiB\n", (int)(data_size / 1024));
     t->data = xmalloc(data_size);
-    if (read_exact_progress(fd, t->data, data_size, "checkpoint") < 0) {
+    if (read_exact_progress(fd, t->data, data_size, "llminfer", "checkpoint") < 0) {
         fprintf(2, "llminfer: short checkpoint read\n");
         exit(1);
     }

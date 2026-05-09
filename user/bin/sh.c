@@ -2,7 +2,9 @@
 
 #include "fcntl.h"
 #include "fs.h"
+#include "term.h"
 #include "types.h"
+#include "utf8.h"
 #include "user.h"
 
 #define MAXARGS 10
@@ -25,123 +27,10 @@ int blank_char(char c) {
     return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-int utf8_cont(char c) { return ((uchar)c & 0xC0) == 0x80; }
-
-int utf8_input_len(char c) {
-    uchar u = c;
-
-    if (u < 0x80)
-        return 1;
-    if ((u & 0xE0) == 0xC0)
-        return 2;
-    if ((u & 0xF0) == 0xE0)
-        return 3;
-    if ((u & 0xF8) == 0xF0)
-        return 4;
-    return 1;
-}
-
-int nextchar(char* buf, int pos, int len) {
-    if (pos >= len)
-        return len;
-    pos++;
-    while (pos < len && utf8_cont(buf[pos]))
-        pos++;
-    return pos;
-}
-
-int prevchar(char* buf, int pos) {
-    if (pos <= 0)
-        return 0;
-    pos--;
-    while (pos > 0 && utf8_cont(buf[pos]))
-        pos--;
-    return pos;
-}
-
-uint decodechar(char* buf, int pos, int end) {
-    uchar c0 = buf[pos];
-    int len = end - pos;
-    uint r = 0;
-
-    if (len == 1)
-        return c0;
-    if (len == 2)
-        r = c0 & 0x1F;
-    else if (len == 3)
-        r = c0 & 0x0F;
-    else if (len == 4)
-        r = c0 & 0x07;
-    else
-        return c0;
-
-    for (int i = pos + 1; i < end; i++) {
-        if (!utf8_cont(buf[i]))
-            return c0;
-        r = (r << 6) | (buf[i] & 0x3F);
-    }
-    return r;
-}
-
-int rune_width(uint r) {
-    if (r < 0x20)
-        return 0;
-    if (r < 0x80)
-        return 1;
-    if ((r >= 0x1100 && r <= 0x115F) || (r >= 0x2329 && r <= 0x232A) ||
-        (r >= 0x2E80 && r <= 0xA4CF) || (r >= 0xAC00 && r <= 0xD7A3) ||
-        (r >= 0xF900 && r <= 0xFAFF) || (r >= 0xFE10 && r <= 0xFE19) ||
-        (r >= 0xFE30 && r <= 0xFE6F) || (r >= 0xFF00 && r <= 0xFF60) ||
-        (r >= 0xFFE0 && r <= 0xFFE6) || (r >= 0x20000 && r <= 0x3FFFD))
-        return 2;
-    return 1;
-}
-
-int text_width(char* buf, int start, int end) {
-    int width = 0;
-
-    while (start < end) {
-        int next = nextchar(buf, start, end);
-        width += rune_width(decodechar(buf, start, next));
-        start = next;
-    }
-    return width;
-}
-
-int append_uint(char* out, int pos, int value) {
-    char tmp[12];
-    int n = 0;
-
-    if (value == 0) {
-        out[pos++] = '0';
-        return pos;
-    }
-    while (value > 0) {
-        tmp[n++] = '0' + value % 10;
-        value /= 10;
-    }
-    while (n > 0)
-        out[pos++] = tmp[--n];
-    return pos;
-}
-
-void move_cursor(char dir, int width) {
-    char out[16];
-    int n = 0;
-
-    if (width <= 0)
-        return;
-    out[n++] = '\033';
-    out[n++] = '[';
-    n = append_uint(out, n, width);
-    out[n++] = dir;
-    write(2, out, n);
-}
-
 void redraw(char* buf, int len, int cursor) {
     char out[140];
     int n = 0;
-    int tail = text_width(buf, cursor, len);
+    int tail = utf8_text_width(buf, cursor, len);
 
     out[n++] = '\r';
     out[n++] = '\033';
@@ -155,18 +44,18 @@ void redraw(char* buf, int len, int cursor) {
     if (tail > 0) {
         out[n++] = '\033';
         out[n++] = '[';
-        n = append_uint(out, n, tail);
+        n = term_append_uint(out, n, tail);
         out[n++] = 'D';
     }
     write(2, out, n);
 }
 
 void redraw_from(char* buf, int len, int cursor) {
-    int tail = text_width(buf, cursor, len);
+    int tail = utf8_text_width(buf, cursor, len);
 
     write(2, buf + cursor, len - cursor);
-    write(2, "\033[K", 3);
-    move_cursor('D', tail);
+    term_clear_eol();
+    term_move_cursor('D', tail);
 }
 
 int insert_bytes(char* buf, int* len, int* cursor, int nbuf, char* s, int n) {
@@ -377,23 +266,23 @@ int getcmd(char* buf, int nbuf) {
                 continue;
             }
             if (seq[0] == '[' && seq[1] == 'C') {
-                int next = nextchar(buf, cursor, len);
+                int next = utf8_next(buf, cursor, len);
 
-                move_cursor('C', text_width(buf, cursor, next));
+                term_move_cursor('C', utf8_text_width(buf, cursor, next));
                 cursor = next;
                 continue;
             }
             if (seq[0] == '[' && seq[1] == 'D') {
-                int prev = prevchar(buf, cursor);
+                int prev = utf8_prev(buf, cursor);
 
-                move_cursor('D', text_width(buf, prev, cursor));
+                term_move_cursor('D', utf8_text_width(buf, prev, cursor));
                 cursor = prev;
                 continue;
             }
             if (seq[0] == '[' && seq[1] == '3') {
                 if (read(0, &seq[2], 1) == 1 && seq[2] == '~' && cursor < len) {
                     delete_range(
-                        buf, &len, &cursor, cursor, nextchar(buf, cursor, len)
+                        buf, &len, &cursor, cursor, utf8_next(buf, cursor, len)
                     );
                     redraw_from(buf, len, cursor);
                 }
@@ -427,12 +316,12 @@ int getcmd(char* buf, int nbuf) {
         }
         if (c == C('H') || c == '\x7f') {
             if (cursor > 0) {
-                int start = prevchar(buf, cursor);
-                int width = text_width(buf, start, cursor);
+                int start = utf8_prev(buf, cursor);
+                int width = utf8_text_width(buf, start, cursor);
 
                 delete_range(buf, &len, &cursor, start, cursor);
                 cursor = start;
-                move_cursor('D', width);
+                term_move_cursor('D', width);
                 redraw_from(buf, len, cursor);
             }
             continue;
