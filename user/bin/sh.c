@@ -21,7 +21,9 @@ int command_char(char c) {
     return c != 0 && c != ' ' && c != '\t' && c != '\r' && c != '\n';
 }
 
-int blank_char(char c) { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; }
+int blank_char(char c) {
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
 
 int utf8_cont(char c) { return ((uchar)c & 0xC0) == 0x80; }
 
@@ -301,7 +303,8 @@ int complete_token(char* buf, int* len, int* cursor, int nbuf) {
         if (de.inum == 0)
             continue;
         direntname(&de, name);
-        if ((command && !command_entry(name)) || (!command && !file_entry(name)))
+        if ((command && !command_entry(name)) ||
+            (!command && !file_entry(name)))
             continue;
         if (!match_prefix(name, buf + prefix_start, token_len))
             continue;
@@ -517,6 +520,7 @@ int main(void) {
         if (fork1() == 0)
             runcmd(argv);
         wait(0);
+        write(2, "\n", 1);
     }
     exit(0);
 }
