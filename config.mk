@@ -1,2 +1,2 @@
-CPUS ?= 4
+CPUS ?= 1
 DEBUG ?= 0
