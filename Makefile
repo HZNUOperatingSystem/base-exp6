@@ -74,6 +74,10 @@ QEMU ?= qemu-system-riscv64
 MIN_QEMU_VERSION ?= 7.2
 GDBPORT ?= $(shell expr `id -u` % 5000 + 25000)
 
+# model files
+TOKENIZER_URL ?= https://github.com/karpathy/llama2.c/raw/refs/heads/master/tokenizer.bin
+MODEL_URL ?= https://huggingface.co/karpathy/tinyllamas/resolve/main/stories15M.bin
+
 # compiler flags
 CFLAGS = -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 CFLAGS += -march=rv64gc -mabi=lp64
@@ -198,6 +202,26 @@ FS_IMG = $(BUILD_DIR)/fs.img
 FS_FILES_DIR = files
 FS_FILES = $(shell find $(FS_FILES_DIR) -maxdepth 1 -type f 2>/dev/null | sort)
 
+.PHONY: download-files
+download-files: $(FS_FILES_DIR)/tokenizer.bin $(FS_FILES_DIR)/model.bin
+
+.PHONY: .check-curl
+.check-curl:
+	$(Q)if ! command -v curl >/dev/null 2>&1; then \
+		echo "$(COLOR_ERR)ERROR: curl is required but not found$(NC)"; \
+		exit 1; \
+	fi
+
+$(FS_FILES_DIR)/tokenizer.bin: | .check-curl
+	@mkdir -p $(@D)
+	$(ECHO) "$(COLOR_CMD) CMD $(NC)curl -L -o $@ $(TOKENIZER_URL)"
+	$(Q)curl -L -o $@ $(TOKENIZER_URL)
+
+$(FS_FILES_DIR)/model.bin: | .check-curl
+	@mkdir -p $(@D)
+	$(ECHO) "$(COLOR_CMD) CMD $(NC)curl -L -o $@ $(MODEL_URL)"
+	$(Q)curl -L -o $@ $(MODEL_URL)
+
 $(MKFS): tools/mkfs.c $(wildcard $(I)/*.h)
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
@@ -225,8 +249,8 @@ endif
 
 QEMU_VERSION = $(shell $(QEMU) --version 2>/dev/null | sed -nE '1s/.*QEMU emulator version ([0-9]+(\.[0-9]+)?).*/\1/p')
 
-.PHONY: check-qemu-version
-check-qemu-version:
+.PHONY: .check-qemu-version
+.check-qemu-version:
 	$(Q)if [ -z "$(QEMU_VERSION)" ]; then \
 		echo "ERROR: Could not determine qemu version"; \
 		exit 1; \
@@ -241,7 +265,7 @@ check-qemu-version:
 	$(Q)sed "s/:1234/:$(GDBPORT)/" $< > $@
 
 .PHONY: emulate
-emulate: check-qemu-version $(KERNEL) $(FS_IMG) $(QEMU_DEBUG_DEPS)
+emulate: .check-qemu-version $(KERNEL) $(FS_IMG) $(QEMU_DEBUG_DEPS)
 	$(ECHO) "$(COLOR_RUN)QEMU  $(NC)$(KERNEL)"
 	$(if $(QEMU_DEBUG_OPTS),$(ECHO) "$(COLOR_OK)DEBUG $(NC)waiting for GDB on :$(GDBPORT); run 'make debug' in another session")
 	$(Q)$(QEMU) $(QEMUOPTS) $(QEMU_DEBUG_OPTS)
