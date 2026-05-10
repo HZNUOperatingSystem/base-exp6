@@ -79,7 +79,7 @@ TOKENIZER_URL ?= https://github.com/karpathy/llama2.c/raw/refs/heads/master/toke
 MODEL_URL ?= https://huggingface.co/karpathy/tinyllamas/resolve/main/stories15M.bin
 
 # compiler flags
-CFLAGS = -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
+CFLAGS += -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 CFLAGS += -march=rv64gc -mabi=lp64
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
@@ -93,12 +93,12 @@ CFLAGS += -fno-builtin-memcpy -Wno-main
 CFLAGS += -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf
 CFLAGS += -fdiagnostics-color=always
 
-KERNEL_CPPFLAGS = -I$(K)/include -I$(K)/riscv -I$(I)
-USER_CPPFLAGS = -I$(U)/include -I$(I)
-MKFS_CPPFLAGS = -iquote $(I)
+KERNEL_CFLAGS += -I$(K)/include -I$(K)/riscv -I$(I)
+USER_CFLAGS += -I$(U)/include -I$(I)
+MKFS_CFLAGS += -iquote $(I)
 
 # linker flags
-LDFLAGS = -z max-page-size=4096
+LDFLAGS += -z max-page-size=4096
 LDFLAGS += -melf64lriscv
 
 # disable stack protector
@@ -138,12 +138,12 @@ KERNEL_OBJS = $(KERNEL_C_OBJS) $(KERNEL_S_OBJS)
 $(BUILD_DIR)/$(K)/%.o: $(K)/%.c
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
-	$(Q)$(CC) $(CFLAGS) $(KERNEL_CPPFLAGS) -c -o $@ $<
+	$(Q)$(CC) $(CFLAGS) $(KERNEL_CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/$(K)/%.o: $(K)/%.S
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_AS)  AS  $(NC)$@"
-	$(Q)$(CC) $(CFLAGS) $(KERNEL_CPPFLAGS) -c -o $@ $<
+	$(Q)$(CC) $(CFLAGS) $(KERNEL_CFLAGS) -c -o $@ $<
 
 $(KERNEL): $(KERNEL_OBJS) $(KERNEL_LD)
 	$(ECHO) "$(COLOR_LD)  LD  $(NC)$@"
@@ -172,7 +172,7 @@ UPROGS = $(patsubst $(USER_BIN_DIR)/%.c,$(BUILD_DIR)/$(U)/_%,$(USER_PROG_SRCS))
 $(BUILD_DIR)/$(U)/%.o: $(U)/%.c
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
-	$(Q)$(CC) $(CFLAGS) $(USER_CPPFLAGS) -c -o $@ $<
+	$(Q)$(CC) $(CFLAGS) $(USER_CFLAGS) -c -o $@ $<
 
 $(USYS_S): $(USER_USYS_GEN) $(I)/syscall.h
 	@mkdir -p $(@D)
@@ -182,7 +182,7 @@ $(USYS_S): $(USER_USYS_GEN) $(I)/syscall.h
 $(USYS_OBJ): $(USYS_S)
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_AS)  AS  $(NC)$@"
-	$(Q)$(CC) $(CFLAGS) $(USER_CPPFLAGS) -c -o $@ $<
+	$(Q)$(CC) $(CFLAGS) $(USER_CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/$(U)/_%: $(BUILD_DIR)/$(U)/bin/%.o $(ULIB) $(USER_LD)
 	$(ECHO) "$(COLOR_LD)  LD  $(NC)$@"
@@ -225,7 +225,7 @@ $(FS_FILES_DIR)/model.bin: | .check-curl
 $(MKFS): tools/mkfs.c $(wildcard $(I)/*.h)
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
-	$(Q)gcc -Wno-unknown-attributes $(MKFS_CPPFLAGS) -o $@ $<
+	$(Q)gcc -Wno-unknown-attributes $(MKFS_CFLAGS) -o $@ $<
 
 $(FS_IMG): $(MKFS) $(UPROGS) $(FS_FILES)
 	$(ECHO) "$(COLOR_MKFS)MKFS  $(NC)$@"
@@ -236,7 +236,8 @@ fs.img: $(FS_IMG)
 
 # MARK: - qemu targets
 
-QEMUOPTS = -machine virt -bios none -kernel $(KERNEL) -m 128M -smp $(CPUS) -nographic
+MEM ?= 128M
+QEMUOPTS += -machine virt -bios none -kernel $(KERNEL) -m $(MEM) -smp $(CPUS) -nographic
 QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=$(FS_IMG),if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
