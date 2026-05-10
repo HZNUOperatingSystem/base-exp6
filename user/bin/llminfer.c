@@ -104,7 +104,7 @@ void alloc_state(state_s* s, config_s* p) {
 
     fprintf(
         2,
-        "llminfer: alloc state dim=%d hidden=%d layers=%d seq=%d kv_cache=%d "
+        "alloc state dim=%d hidden=%d layers=%d seq=%d kv_cache=%d "
         "KiB\n",
         p->dim,
         p->hidden_dim,
@@ -123,7 +123,7 @@ void alloc_state(state_s* s, config_s* p) {
     s->value_cache = xmalloc(p->n_layers * p->seq_len * kv_dim * sizeof(float));
     s->att = xmalloc(p->n_heads * p->seq_len * sizeof(float));
     s->logits = xmalloc(p->vocab_size * sizeof(float));
-    fprintf(2, "llminfer: state ready\n");
+    fprintf(2, "state ready\n");
 }
 
 // MARK: - math
@@ -373,7 +373,7 @@ void generate(
         token = next;
     }
     printf("\n");
-    fprintf(2, "llminfer: summary steps=%d generated=%d\n", pos, generated);
+    fprintf(2, "summary steps=%d generated=%d\n", pos, generated);
     free(prompt_tokens);
 }
 
@@ -383,10 +383,10 @@ void read_tokenizer(tokenizer_s* t, char* path, int vocab_size) {
     int fd = open(path, O_RDONLY);
 
     if (fd < 0) {
-        fprintf(2, "llminfer: cannot open %s\n", path);
+        fprintf(2, "cannot open %s\n", path);
         exit(1);
     }
-    fprintf(2, "llminfer: open tokenizer %s vocab=%d\n", path, vocab_size);
+    fprintf(2, "open tokenizer %s vocab=%d\n", path, vocab_size);
     t->vocab_size = vocab_size;
     t->vocab = xmalloc(vocab_size * sizeof(char*));
     t->vocab_scores = xmalloc(vocab_size * sizeof(float));
@@ -407,17 +407,13 @@ void read_tokenizer(tokenizer_s* t, char* path, int vocab_size) {
         if (read_exact(fd, t->vocab[i], len) < 0)
             goto bad;
         t->vocab[i][len] = 0;
-        if ((i + 1) % 4096 == 0 || i + 1 == vocab_size)
-            fprintf(
-                2, "llminfer: tokenizer %d/%d entries\n", i + 1, vocab_size
-            );
     }
     close(fd);
-    fprintf(2, "llminfer: tokenizer ready max_token=%d\n", t->max_token_length);
+    fprintf(2, "tokenizer ready max_token=%d\n", t->max_token_length);
     return;
 
 bad:
-    fprintf(2, "llminfer: bad tokenizer\n");
+    fprintf(2, "bad tokenizer\n");
     exit(1);
 }
 
@@ -430,21 +426,16 @@ void read_checkpoint(transformer_s* t, char* path) {
     uint data_size;
 
     if (fd < 0) {
-        fprintf(2, "llminfer: cannot open %s\n", path);
+        fprintf(2, "cannot open %s\n", path);
         exit(1);
     }
     if (fstat(fd, &st) < 0) {
-        fprintf(2, "llminfer: cannot stat %s\n", path);
+        fprintf(2, "cannot stat %s\n", path);
         exit(1);
     }
-    fprintf(
-        2,
-        "llminfer: open checkpoint %s (%d KiB)\n",
-        path,
-        (int)(st.size / 1024)
-    );
+    fprintf(2, "open checkpoint %s (%d KiB)\n", path, (int)(st.size / 1024));
     if (read_exact(fd, &t->config, sizeof(config_s)) < 0) {
-        fprintf(2, "llminfer: bad checkpoint header\n");
+        fprintf(2, "bad checkpoint header\n");
         exit(1);
     }
     shared_weights = t->config.vocab_size > 0;
@@ -452,7 +443,7 @@ void read_checkpoint(transformer_s* t, char* path) {
         t->config.vocab_size = -t->config.vocab_size;
     fprintf(
         2,
-        "llminfer: config dim=%d hidden=%d layers=%d heads=%d kv_heads=%d "
+        "config dim=%d hidden=%d layers=%d heads=%d kv_heads=%d "
         "vocab=%d seq=%d shared=%d\n",
         t->config.dim,
         t->config.hidden_dim,
@@ -465,21 +456,16 @@ void read_checkpoint(transformer_s* t, char* path) {
     );
 
     data_size = (uint)(st.size - sizeof(config_s));
-    fprintf(
-        2,
-        "llminfer: alloc checkpoint weights %d KiB\n",
-        (int)(data_size / 1024)
-    );
+    fprintf(2, "alloc checkpoint weights %d KiB\n", (int)(data_size / 1024));
     t->data = xmalloc(data_size);
-    if (read_exact_progress(fd, t->data, data_size, "llminfer", "checkpoint") <
-        0) {
-        fprintf(2, "llminfer: short checkpoint read\n");
+    if (read_exact(fd, t->data, data_size) < 0) {
+        fprintf(2, "short checkpoint read\n");
         exit(1);
     }
     close(fd);
 
     map_weights(&t->weights, &t->config, t->data, shared_weights);
-    fprintf(2, "llminfer: weights mapped\n");
+    fprintf(2, "weights mapped\n");
     alloc_state(&t->state, &t->config);
 }
 
