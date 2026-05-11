@@ -9,4 +9,6 @@ See [CHANGES.md](CHANGES.md) for a concise summary of the main refactors and cle
 
 ### Acknowledgement
 
-Special thanks to Frans Kaashoek, Robert Morris, and Russ Cox at MIT for their outstanding work, which made this project possible.
+Special thanks to Frans Kaashoek, Robert Morris, and Russ Cox at MIT for their outstanding work on [xv6-riscv](https://github.com/mit-pdos/xv6-riscv), which made this project possible.
+
+Special thanks to Andrej Karpathy for the [llama2.c](https://github.com/karpathy/llama2.c) project, which we modified to adapt to our needs.
