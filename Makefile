@@ -200,7 +200,7 @@ $(BUILD_DIR)/$(U)/%.o: $(U)/%.c
 
 $(USYS_S): $(USER_USYS_GEN) $(I)/syscall.h
 	@mkdir -p $(@D)
-	$(ECHO) "$(COLOR_AS)  GEN $(NC)$@"
+	$(ECHO) "$(COLOR_AS) GEN  $(NC)$@"
 	$(Q)sh $(USER_USYS_GEN) $(I)/syscall.h > $@
 
 $(USYS_OBJ): $(USYS_S)
