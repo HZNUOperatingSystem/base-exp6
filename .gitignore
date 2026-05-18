@@ -2,6 +2,7 @@
 *~
 
 # development
+/.cache
 /build
 /.gdbinit
 /files/*
@@ -13,6 +14,7 @@ initcode
 initcode.out
 kernelmemfs
 TAGS
+compile_commands.json
 
 # preferences
 /.vscode

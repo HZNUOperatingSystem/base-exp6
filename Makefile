@@ -51,6 +51,7 @@ LD      = $(PREFIX)ld
 OBJCOPY = $(PREFIX)objcopy
 OBJDUMP = $(PREFIX)objdump
 GDB     = $(PREFIX)gdb
+HOST_CC ?= gcc
 
 # MARK: - variables
 
@@ -107,6 +108,14 @@ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 &
 # disable PIE
 CFLAGS += $(shell $(CC) -dumpspecs 2>/dev/null | grep -q 'no-pie' && echo '-fno-pie -no-pie')
 
+# clangd consumes the Makefile flags but parses with clang, not the GCC cross
+# compiler. keep host libc out of xv6 sources while allowing clang builtins.
+CLANGD_CC ?= clang
+CLANGD_GCC_TARGET ?= $(shell $(CC) -dumpmachine 2>/dev/null || echo riscv64-unknown-elf)
+CLANGD_TARGET ?= $(if $(filter riscv64%,$(CLANGD_GCC_TARGET)),$(CLANGD_GCC_TARGET),riscv64-unknown-elf)
+CLANGD_RESOURCE_INCLUDE ?= $(shell $(CLANGD_CC) -print-resource-dir 2>/dev/null)/include
+CLANGD_CFLAGS = $(filter-out -MD -fdiagnostics-color=%,$(CFLAGS))
+
 # MARK: - helper targets
 
 .PHONY: all
@@ -123,6 +132,21 @@ toolchain-info:
 .PHONY: clean
 clean:
 	$(call RUN,rm -rf $(BUILD_DIR))
+
+.PHONY: compile_commands
+compile_commands:
+	$(ECHO) "$(COLOR_CMD) CMD $(NC)sh scripts/gen_compile_commands.sh"
+	$(Q)GEN_COMPILE_COMMANDS_FROM_MAKE=1 \
+		BUILD_DIR='$(BUILD_DIR)' \
+		CLANGD_CC='$(CLANGD_CC)' \
+		CLANGD_TARGET='$(CLANGD_TARGET)' \
+		CLANGD_RESOURCE_INCLUDE='$(CLANGD_RESOURCE_INCLUDE)' \
+		CFLAGS='$(CLANGD_CFLAGS)' \
+		KERNEL_CFLAGS='$(KERNEL_CFLAGS)' \
+		USER_CFLAGS='$(USER_CFLAGS)' \
+		HOST_CC='$(HOST_CC)' \
+		MKFS_CFLAGS='$(MKFS_CFLAGS)' \
+		sh scripts/gen_compile_commands.sh
 
 # MARK: - kernel targets
 
@@ -225,7 +249,7 @@ $(FS_FILES_DIR)/model.bin: | .check-curl
 $(MKFS): tools/mkfs.c $(wildcard $(I)/*.h)
 	@mkdir -p $(@D)
 	$(ECHO) "$(COLOR_CC)  CC  $(NC)$@"
-	$(Q)gcc -Wno-unknown-attributes $(MKFS_CFLAGS) -o $@ $<
+	$(Q)$(HOST_CC) -Wno-unknown-attributes $(MKFS_CFLAGS) -o $@ $<
 
 $(FS_IMG): $(MKFS) $(UPROGS) $(FS_FILES)
 	$(ECHO) "$(COLOR_MKFS)MKFS  $(NC)$@"

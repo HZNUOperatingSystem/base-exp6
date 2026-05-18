@@ -1,0 +1,13 @@
+CompileFlags:
+  CompilationDatabase: .
+  Remove:
+    - -Werror
+    - -MD
+    - -fdiagnostics-color=*
+  Add:
+    - -Wno-unknown-warning-option
+    - -Wno-unused-command-line-argument
+Diagnostics:
+  UnusedIncludes: None
+Index:
+  Background: Build
