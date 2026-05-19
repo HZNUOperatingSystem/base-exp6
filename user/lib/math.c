@@ -1,7 +1,5 @@
 #include "math.h"
 
-float absf(float x) { return x < 0.0f ? -x : x; }
-
 float sqrt_approx(float x) {
     float r;
 
@@ -33,6 +31,38 @@ float exp_approx(float x) {
     while (scale-- > 0)
         y *= y;
     return neg ? 1.0f / y : y;
+}
+
+float log_approx(float x) {
+    int k = 0;
+    float z, z2, term, sum;
+
+    if (x <= 0.0f)
+        return 0.0f;
+    while (x >= 2.0f) {
+        x *= 0.5f;
+        k++;
+    }
+    while (x < 1.0f) {
+        x *= 2.0f;
+        k--;
+    }
+
+    z = (x - 1.0f) / (x + 1.0f);
+    z2 = z * z;
+    term = z;
+    sum = 0.0f;
+    for (int i = 1; i <= 23; i += 2) {
+        sum += term / i;
+        term *= z2;
+    }
+    return 2.0f * sum + k * LN2;
+}
+
+float pow_approx(float base, float exp) {
+    if (base <= 0.0f)
+        return 0.0f;
+    return exp_approx(exp * log_approx(base));
 }
 
 float sin_approx(float x) {
