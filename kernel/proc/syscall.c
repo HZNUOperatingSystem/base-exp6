@@ -85,22 +85,22 @@ extern uint64 sys_freemem(void);
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
 static uint64 (*syscalls[])(void) = {
-    [SYS_fork] sys_fork,
-    [SYS_exit] sys_exit,
-    [SYS_wait] sys_wait,
-    [SYS_read] sys_read,
-    [SYS_kill] sys_kill,
-    [SYS_exec] sys_exec,
-    [SYS_fstat] sys_fstat,
-    [SYS_dup] sys_dup,
-    [SYS_getpid] sys_getpid,
-    [SYS_sbrk] sys_sbrk,
-    [SYS_open] sys_open,
-    [SYS_write] sys_write,
-    [SYS_close] sys_close,
-    [SYS_shutdown] sys_shutdown,
-    [SYS_consolemode] sys_consolemode,
-    [SYS_freemem] sys_freemem,
+    [SYS_fork] = sys_fork,
+    [SYS_exit] = sys_exit,
+    [SYS_wait] = sys_wait,
+    [SYS_read] = sys_read,
+    [SYS_kill] = sys_kill,
+    [SYS_exec] = sys_exec,
+    [SYS_fstat] = sys_fstat,
+    [SYS_dup] = sys_dup,
+    [SYS_getpid] = sys_getpid,
+    [SYS_sbrk] = sys_sbrk,
+    [SYS_open] = sys_open,
+    [SYS_write] = sys_write,
+    [SYS_close] = sys_close,
+    [SYS_shutdown] = sys_shutdown,
+    [SYS_consolemode] = sys_consolemode,
+    [SYS_freemem] = sys_freemem,
 };
 
 void syscall(void) {
