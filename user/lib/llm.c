@@ -1,7 +1,7 @@
+#include "llm.h"
 #include "ctype.h"
 #include "fcntl.h"
 #include "io.h"
-#include "llm.h"
 #include "math.h"
 #include "stat.h"
 #include "types.h"
@@ -96,7 +96,8 @@ static uint64 expected_weight_count(llm_config_t* p) {
 static int alloc_state(llm_state_t* s, llm_config_t* p) {
     int head_size = p->dim / p->n_heads;
     int kv_dim = p->n_kv_heads * head_size;
-    uint64 cache_items = checked_mul(checked_mul(p->n_layers, p->seq_len), kv_dim);
+    uint64 cache_items =
+        checked_mul(checked_mul(p->n_layers, p->seq_len), kv_dim);
 
     s->x = xmalloc(checked_bytes(p->dim, sizeof(float)));
     s->xb = xmalloc(checked_bytes(p->dim, sizeof(float)));
@@ -104,7 +105,8 @@ static int alloc_state(llm_state_t* s, llm_config_t* p) {
     s->hb = xmalloc(checked_bytes(p->hidden_dim, sizeof(float)));
     s->hb2 = xmalloc(checked_bytes(p->hidden_dim, sizeof(float)));
     s->q = xmalloc(checked_bytes(p->dim, sizeof(float)));
-    s->att = xmalloc(checked_bytes((uint64)p->n_heads * p->seq_len, sizeof(float)));
+    s->att =
+        xmalloc(checked_bytes((uint64)p->n_heads * p->seq_len, sizeof(float)));
     s->logits = xmalloc(checked_bytes(p->vocab_size, sizeof(float)));
     s->key_cache = xmalloc(checked_bytes(cache_items, sizeof(float)));
     s->value_cache = xmalloc(checked_bytes(cache_items, sizeof(float)));
@@ -150,8 +152,7 @@ int llm_model_load(llm_model_t* m, const char* path) {
         return 0;
     }
     if (m->config.dim <= 0 || m->config.n_heads <= 0 ||
-        m->config.dim % m->config.n_heads != 0 ||
-        m->config.n_kv_heads <= 0 ||
+        m->config.dim % m->config.n_heads != 0 || m->config.n_kv_heads <= 0 ||
         m->config.n_heads % m->config.n_kv_heads != 0) {
         fprintf(2, "llm: invalid model config\n");
         close(fd);
@@ -160,7 +161,9 @@ int llm_model_load(llm_model_t* m, const char* path) {
 
     m->weight_count = expected_weight_count(&m->config);
     m->weight_data = xmalloc(checked_bytes(m->weight_count, sizeof(float)));
-    if (read_exact(fd, m->weight_data, checked_bytes(m->weight_count, sizeof(float))) < 0) {
+    if (read_exact(
+            fd, m->weight_data, checked_bytes(m->weight_count, sizeof(float))
+        ) < 0) {
         fprintf(2, "llm: short model read\n");
         close(fd);
         llm_model_free(m);
@@ -213,21 +216,26 @@ float* llm_forward(llm_model_t* m, int token, int pos) {
     int kv_mul = p->n_heads / p->n_kv_heads;
     int hidden_dim = p->hidden_dim;
 
-    memcpy(x, w->token_embedding_table + (uint64)token * dim, dim * sizeof(float));
+    memcpy(
+        x, w->token_embedding_table + (uint64)token * dim, dim * sizeof(float)
+    );
 
     for (int l = 0; l < p->n_layers; l++) {
         uint64 loff = (uint64)l * p->seq_len * kv_dim;
         float* k = s->key_cache + loff + (uint64)pos * kv_dim;
         float* v = s->value_cache + loff + (uint64)pos * kv_dim;
 
-        rmsnorm(s->xb, x, w->rms_att_weight + (uint64)l * dim, dim, p->rms_norm_eps);
+        rmsnorm(
+            s->xb, x, w->rms_att_weight + (uint64)l * dim, dim, p->rms_norm_eps
+        );
         matmul(s->q, s->xb, w->wq + (uint64)l * dim * dim, dim, dim);
         matmul(k, s->xb, w->wk + (uint64)l * dim * kv_dim, dim, kv_dim);
         matmul(v, s->xb, w->wv + (uint64)l * dim * kv_dim, dim, kv_dim);
 
         for (int h = 0; h < dim; h += 2) {
             int head_dim = h % head_size;
-            float freq = 1.0f / pow_approx(p->rope_theta, head_dim / (float)head_size);
+            float freq =
+                1.0f / pow_approx(p->rope_theta, head_dim / (float)head_size);
             float val = pos * freq;
             float fcr = cos_approx(val);
             float fci = sin_approx(val);
@@ -274,16 +282,24 @@ float* llm_forward(llm_model_t* m, int token, int pos) {
         for (int i = 0; i < dim; i++)
             x[i] += s->xb2[i];
 
-        rmsnorm(s->xb, x, w->rms_ffn_weight + (uint64)l * dim, dim, p->rms_norm_eps);
-        matmul(s->hb, s->xb, w->w1 + (uint64)l * hidden_dim * dim, dim, hidden_dim);
-        matmul(s->hb2, s->xb, w->w3 + (uint64)l * hidden_dim * dim, dim, hidden_dim);
+        rmsnorm(
+            s->xb, x, w->rms_ffn_weight + (uint64)l * dim, dim, p->rms_norm_eps
+        );
+        matmul(
+            s->hb, s->xb, w->w1 + (uint64)l * hidden_dim * dim, dim, hidden_dim
+        );
+        matmul(
+            s->hb2, s->xb, w->w3 + (uint64)l * hidden_dim * dim, dim, hidden_dim
+        );
         for (int i = 0; i < hidden_dim; i++) {
             float val = s->hb[i];
 
             val *= 1.0f / (1.0f + exp_approx(-val));
             s->hb[i] = val * s->hb2[i];
         }
-        matmul(s->xb, s->hb, w->w2 + (uint64)l * dim * hidden_dim, hidden_dim, dim);
+        matmul(
+            s->xb, s->hb, w->w2 + (uint64)l * dim * hidden_dim, hidden_dim, dim
+        );
         for (int i = 0; i < dim; i++)
             x[i] += s->xb[i];
     }
@@ -316,8 +332,8 @@ static int read_tokenizer_header(int fd, llm_tokenizer_t* t) {
     t->unk_id = header[4];
     t->special_count = header[5];
     t->merge_count = header[6];
-    return t->vocab_size > 0 && t->max_piece_len > 0 &&
-           t->special_count >= 0 && t->merge_count >= 0;
+    return t->vocab_size > 0 && t->max_piece_len > 0 && t->special_count >= 0 &&
+           t->merge_count >= 0;
 }
 
 static int load_pieces(int fd, llm_tokenizer_t* t) {
@@ -433,7 +449,8 @@ int llm_encode(
             if (id < 0 || id >= t->vocab_size)
                 continue;
             len = t->piece_lens[id];
-            if (len > special_len && len > 0 && starts_with(p, t->pieces[id], len)) {
+            if (len > special_len && len > 0 &&
+                starts_with(p, t->pieces[id], len)) {
                 special = id;
                 special_len = len;
             }
@@ -501,7 +518,8 @@ char* llm_decode_piece(llm_tokenizer_t* t, int token) {
 void llm_print_piece(char* piece) {
     if (piece == 0 || piece[0] == 0)
         return;
-    if (piece[1] == 0 && !char_printable(piece[0]) && !char_whitespace(piece[0]))
+    if (piece[1] == 0 && !char_printable(piece[0]) &&
+        !char_whitespace(piece[0]))
         return;
     write(1, piece, strlen(piece));
 }

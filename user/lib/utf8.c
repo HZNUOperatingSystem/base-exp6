@@ -1,5 +1,5 @@
-#include "ctype.h"
 #include "utf8.h"
+#include "ctype.h"
 #include "types.h"
 #include "user.h"
 
