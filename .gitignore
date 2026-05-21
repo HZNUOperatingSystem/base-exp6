@@ -19,6 +19,7 @@ compile_commands.json
 # preferences
 /.vscode
 /.idea
+/.zed
 
 # code agent configs
 /.agents
