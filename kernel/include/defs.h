@@ -31,6 +31,9 @@ void consputc(int);
 // exec.c
 int kexec(char*, char**);
 
+// fdt.c
+uint64 fdt_get_memory_size(uint64);
+
 // file.c
 struct file* filealloc(void);
 void fileclose(struct file*);
@@ -57,8 +60,9 @@ void stati(struct inode*, struct stat*);
 // kalloc.c
 void* kalloc(void);
 void kfree(void*);
-void kinit(void);
+void kinit(uint64);
 uint64 kfreemem(void);
+uint64 kphys_top(void);
 
 // printf.c
 int printf(char*, ...) __attribute__((format(printf, 1, 2)));

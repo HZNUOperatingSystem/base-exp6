@@ -44,7 +44,7 @@ pagetable_t kvmmake(void) {
         kpgtbl,
         (uint64)etext,
         (uint64)etext,
-        PHYSTOP - (uint64)etext,
+        kphys_top() - (uint64)etext,
         PTE_R | PTE_W
     );
 

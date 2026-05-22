@@ -10,8 +10,12 @@ void timerinit();
 // entry.S needs one stack per CPU.
 __attribute__((aligned(16))) char stack0[4096 * NCPU];
 
+// DTB address passed by QEMU via entry.S.
+uint64 boot_dtb;
+
 // entry.S jumps here in machine mode on stack0.
-void start() {
+void start(uint64 dtb_addr) {
+    boot_dtb = dtb_addr;
     // set M Previous Privilege mode to Supervisor, for mret.
     unsigned long x = r_mstatus();
     x &= ~MSTATUS_MPP_MASK;

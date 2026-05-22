@@ -5,6 +5,9 @@
 .section .text.entry
 .global _entry
 _entry:
+    # qemu passes hartid in a0 and DTB address in a1.
+    # save DTB before we clobber a1 with mhartid.
+    mv s0, a1
     # set up a stack for C.
     # stack0 is declared in start.c,
     # with a 4096-byte stack per CPU.
@@ -15,7 +18,8 @@ _entry:
     addi a1, a1, 1
     mul a0, a0, a1
     add sp, sp, a0
-    # jump to start() in start.c
+    # pass DTB address as first argument to start()
+    mv a0, s0
     call start
 spin:
     j spin

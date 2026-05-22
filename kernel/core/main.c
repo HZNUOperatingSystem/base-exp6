@@ -6,6 +6,8 @@
 
 volatile static int started = 0;
 
+extern uint64 boot_dtb;
+
 // start() jumps here in supervisor mode on all CPUs.
 void main() {
     if (cpuid() == 0) {
@@ -14,7 +16,7 @@ void main() {
         printf("\n");
         printf("xv6 kernel is booting\n");
         printf("\n");
-        kinit();            // physical page allocator
+        kinit(boot_dtb);    // physical page allocator
         kvminit();          // create kernel page table
         kvminithart();      // turn on paging
         procinit();         // process table

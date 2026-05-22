@@ -2,7 +2,7 @@
 
 CPUS = 1            # number of virtual CPUs
 DEBUG = 0           # 1 = wait for GDB on boot
-MEM = 64M           # guest RAM size (default: 128M)
+MEM = 64M           # guest RAM size
 # QEMUOPTS =        # extra qemu options
 
 # MARK: - build tools
