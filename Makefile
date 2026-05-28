@@ -225,13 +225,28 @@ MKFS = $(BUILD_DIR)/mkfs/mkfs
 FS_IMG = $(BUILD_DIR)/fs.img
 FS_FILES_DIR = files
 FS_FILES = $(shell find $(FS_FILES_DIR) -maxdepth 1 -type f 2>/dev/null | sort)
-AUTOGRADE ?= tools/autograde
+AUTOGRADE_OS := $(shell uname -s 2>/dev/null)
+AUTOGRADE_ARCH := $(shell uname -m 2>/dev/null)
+
+ifeq ($(AUTOGRADE_OS),Darwin)
+ifeq ($(AUTOGRADE_ARCH),arm64)
+AUTOGRADE ?= tools/autograde/autograde-macos-arm64
+endif
+endif
+
+ifeq ($(AUTOGRADE_OS),Linux)
+ifeq ($(AUTOGRADE_ARCH),x86_64)
+AUTOGRADE ?= tools/autograde/autograde-linux-x64
+endif
+endif
+
+AUTOGRADE ?= tools/autograde/autograde-unsupported
 
 .PHONY: grade
 grade:
 	$(Q)if [ ! -x "$(AUTOGRADE)" ]; then \
-		echo "$(COLOR_ERR)ERROR: autograde binary not found at $(AUTOGRADE)$(NC)"; \
-		echo "Place the course-provided autograde executable at tools/autograde."; \
+		echo "$(COLOR_ERR)ERROR: no autograde binary for $(AUTOGRADE_OS)/$(AUTOGRADE_ARCH)$(NC)"; \
+		echo "Expected executable: $(AUTOGRADE)"; \
 		exit 1; \
 	fi
 	$(Q)$(AUTOGRADE) $(if $(STAGE),--stage $(STAGE),) .
