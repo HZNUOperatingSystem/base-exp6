@@ -76,8 +76,8 @@ MIN_QEMU_VERSION ?= 7.2
 GDBPORT ?= $(shell expr `id -u` % 5000 + 25000)
 
 # model files
-TOKENIZER_URL ?= https://github.com/karpathy/llama2.c/raw/refs/heads/master/tokenizer.bin
-MODEL_URL ?= https://huggingface.co/karpathy/tinyllamas/resolve/main/stories15M.bin
+TOKENIZER_URL ?= https://files.catbox.moe/n8fm33.bin
+MODEL_URL ?= https://files.catbox.moe/unhqvn.bin
 
 # compiler flags
 CFLAGS += -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
