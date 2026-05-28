@@ -225,6 +225,16 @@ MKFS = $(BUILD_DIR)/mkfs/mkfs
 FS_IMG = $(BUILD_DIR)/fs.img
 FS_FILES_DIR = files
 FS_FILES = $(shell find $(FS_FILES_DIR) -maxdepth 1 -type f 2>/dev/null | sort)
+AUTOGRADE ?= tools/autograde
+
+.PHONY: grade
+grade:
+	$(Q)if [ ! -x "$(AUTOGRADE)" ]; then \
+		echo "$(COLOR_ERR)ERROR: autograde binary not found at $(AUTOGRADE)$(NC)"; \
+		echo "Place the course-provided autograde executable at tools/autograde."; \
+		exit 1; \
+	fi
+	$(Q)$(AUTOGRADE) $(if $(STAGE),--stage $(STAGE),) .
 
 .PHONY: download-files
 download-files: $(FS_FILES_DIR)/tokenizer.bin $(FS_FILES_DIR)/model.bin
