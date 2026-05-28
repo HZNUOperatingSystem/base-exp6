@@ -123,11 +123,11 @@ struct proc {
     uint64 kstack;               // Virtual address of kernel stack
     uint64 sz;                   // Size of process memory (bytes)
     pagetable_t pagetable;       // User page table
-    uint64 lazy_faults;          // Pages created by vmfault().
+    uint64 lazy_faults;          // Per-process fault statistic.
     struct trapframe* trapframe; // data page for trampoline.S
     struct context context;      // swtch() here to run process
     struct fpu_state fpu;        // Saved floating-point registers
-    struct vma vmas[NVMA];       // File-backed virtual ranges.
+    struct vma vmas[NVMA];       // Reserved file-backed ranges.
     int fpu_used;                // Has this process initialized FPU state?
     int fpu_active;              // Is this process's FPU state in hardware?
     struct file* ofile[NOFILE];  // Open files

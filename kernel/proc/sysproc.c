@@ -58,9 +58,7 @@ uint64 sys_vmstat(void) {
     uint64 dst;
 
     argaddr(0, &dst);
-    // Lab 0 hint: this is a kernel-to-user boundary. Build a struct
-    // vmstat from kernel facts, then copy it to dst for the caller.
-    // Lab 2 extends the same struct with resident and fault counters.
+    // Lab 0/2: fill the observation struct for this process.
     return -1;
 }
 
@@ -70,13 +68,11 @@ uint64 sys_pagediscard(void) {
 
     argaddr(0, &addr);
     argaddr(1, &len);
-    // Lab 5 hint: this should remove resident pages in the range while keeping
-    // the process size unchanged, so future touches fault them back.
+    // Lab 5: discard resident state for part of an existing range.
     return -1;
 }
 
 uint64 sys_pagereclaim(void) {
-    // Lab 6 hint: reclaim clean file-backed pages from this process without
-    // changing its virtual mappings. A later touch should fault them back.
+    // Lab 6: reclaim pages that can be reconstructed later.
     return -1;
 }

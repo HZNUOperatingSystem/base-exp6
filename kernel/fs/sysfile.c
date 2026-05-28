@@ -105,8 +105,7 @@ uint64 sys_filemap(void) {
     if (argfd(0, 0, &f) < 0)
         return -1;
     argaddr(1, &len);
-    // Lab 3 hint: reserve a virtual range and remember which file should
-    // supply page contents when vmfault reaches that range.
+    // Lab 3: create a lazy file-backed user range.
     return -1;
 }
 

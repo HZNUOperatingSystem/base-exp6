@@ -232,8 +232,7 @@ int growproc(int n) {
         if (sz + n > TRAPFRAME) {
             return -1;
         }
-        // Lab 1 hint: should growing a heap promise always allocate every
-        // physical page here, or can the first access pay that cost?
+        // Lab 1: separate heap size from immediate page residency.
         if ((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0) {
             return -1;
         }

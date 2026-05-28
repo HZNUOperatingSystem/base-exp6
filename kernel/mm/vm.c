@@ -211,7 +211,7 @@ int uvmdiscard(pagetable_t pagetable, uint64 va, uint64 len) {
     (void)pagetable;
     (void)va;
     (void)len;
-    // Lab 5 hint: this is uvmunmap's shape, but it keeps p->sz unchanged.
+    // Lab 5: drop present pages without shrinking the address space.
     return -1;
 }
 
@@ -262,8 +262,7 @@ uint64 uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz) {
 uint64 uvmresident(pagetable_t pagetable, uint64 sz) {
     (void)pagetable;
     (void)sz;
-    // Lab 2 hint: walk the user portion of this page table and count present
-    // user leaf pages. This is a per-process fact, unlike global freemem().
+    // Lab 2: report how much of this address space is currently resident.
     return 0;
 }
 
@@ -435,17 +434,13 @@ int copyinstr(pagetable_t pagetable, char* dst, uint64 srcva, uint64 max) {
     }
 }
 
-// allocate and map user memory if process is referencing a page
-// that was lazily allocated in sys_sbrk().
+// Resolve a user page fault if the fault belongs to a valid lazy range.
 // returns 0 if va is invalid or already mapped, or if
 // out of physical memory, and physical address if successful.
 uint64 vmfault(pagetable_t pagetable, uint64 va, int read) {
     (void)pagetable;
     (void)va;
     (void)read;
-    // Lab 1 hint: the trap handler already calls this on user load/store page
-    // faults. A syscall copying into a lazy user buffer needs the same idea.
-    // Lab 2 hint: after a promised page becomes resident, record that event
-    // in the process statistics.
+    // Lab 1/2/3: materialize one page for a valid delayed mapping.
     return 0;
 }
