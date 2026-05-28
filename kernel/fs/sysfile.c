@@ -98,6 +98,18 @@ uint64 sys_close(void) {
     return 0;
 }
 
+uint64 sys_filemap(void) {
+    struct file* f;
+    uint64 len;
+
+    if (argfd(0, 0, &f) < 0)
+        return -1;
+    argaddr(1, &len);
+    // Lab 3 hint: reserve a virtual range and remember which file should
+    // supply page contents when vmfault reaches that range.
+    return -1;
+}
+
 uint64 sys_fstat(void) {
     struct file* f;
     uint64 st; // user pointer to struct stat

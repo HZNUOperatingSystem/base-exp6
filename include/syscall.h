@@ -18,5 +18,9 @@
 #define SYS_shutdown 22
 #define SYS_consolemode 23
 #define SYS_freemem 24
+#define SYS_vmstat 25
+#define SYS_filemap 26
+#define SYS_pagediscard 27
+#define SYS_pagereclaim 28
 
 #endif

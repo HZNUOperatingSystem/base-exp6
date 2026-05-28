@@ -53,3 +53,30 @@ uint64 sys_consolemode(void) {
 }
 
 uint64 sys_freemem(void) { return kfreemem(); }
+
+uint64 sys_vmstat(void) {
+    uint64 dst;
+
+    argaddr(0, &dst);
+    // Lab 0 hint: this is a kernel-to-user boundary. Build a struct
+    // vmstat from kernel facts, then copy it to dst for the caller.
+    // Lab 2 extends the same struct with resident and fault counters.
+    return -1;
+}
+
+uint64 sys_pagediscard(void) {
+    uint64 addr;
+    uint64 len;
+
+    argaddr(0, &addr);
+    argaddr(1, &len);
+    // Lab 5 hint: this should remove resident pages in the range while keeping
+    // the process size unchanged, so future touches fault them back.
+    return -1;
+}
+
+uint64 sys_pagereclaim(void) {
+    // Lab 6 hint: reclaim clean file-backed pages from this process without
+    // changing its virtual mappings. A later touch should fault them back.
+    return -1;
+}

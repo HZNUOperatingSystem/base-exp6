@@ -15,5 +15,6 @@
 #define FSSIZE 70000                // size of file system in blocks
 #define MAXPATH 128                 // maximum file path name
 #define USERSTACK 1                 // user stack pages
+#define NVMA 8                      // mapped virtual ranges per process
 
 #endif

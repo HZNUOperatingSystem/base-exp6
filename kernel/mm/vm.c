@@ -207,6 +207,14 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free) {
     }
 }
 
+int uvmdiscard(pagetable_t pagetable, uint64 va, uint64 len) {
+    (void)pagetable;
+    (void)va;
+    (void)len;
+    // Lab 5 hint: this is uvmunmap's shape, but it keeps p->sz unchanged.
+    return -1;
+}
+
 // Allocate PTEs and physical memory to grow a process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
 uint64 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm) {
@@ -249,6 +257,14 @@ uint64 uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz) {
     }
 
     return newsz;
+}
+
+uint64 uvmresident(pagetable_t pagetable, uint64 sz) {
+    (void)pagetable;
+    (void)sz;
+    // Lab 2 hint: walk the user portion of this page table and count present
+    // user leaf pages. This is a per-process fact, unlike global freemem().
+    return 0;
 }
 
 // Recursively free page-table pages.
@@ -423,4 +439,13 @@ int copyinstr(pagetable_t pagetable, char* dst, uint64 srcva, uint64 max) {
 // that was lazily allocated in sys_sbrk().
 // returns 0 if va is invalid or already mapped, or if
 // out of physical memory, and physical address if successful.
-uint64 vmfault(pagetable_t pagetable, uint64 va, int read) { return 0; }
+uint64 vmfault(pagetable_t pagetable, uint64 va, int read) {
+    (void)pagetable;
+    (void)va;
+    (void)read;
+    // Lab 1 hint: the trap handler already calls this on user load/store page
+    // faults. A syscall copying into a lazy user buffer needs the same idea.
+    // Lab 2 hint: after a promised page becomes resident, record that event
+    // in the process statistics.
+    return 0;
+}
