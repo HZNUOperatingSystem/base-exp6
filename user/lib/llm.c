@@ -32,6 +32,16 @@ static void freep(void* p) {
         free(p);
 }
 
+static void* xreserve(uint n) {
+    void* p = malloc(n);
+
+    if (p == 0) {
+        fprintf(2, "malloc failed\n");
+        exit(1);
+    }
+    return p;
+}
+
 // MARK: - model loader
 
 static void map_weights(llm_model_t* m) {
@@ -108,8 +118,8 @@ static int alloc_state(llm_state_t* s, llm_config_t* p) {
     s->att =
         xmalloc(checked_bytes((uint64)p->n_heads * p->seq_len, sizeof(float)));
     s->logits = xmalloc(checked_bytes(p->vocab_size, sizeof(float)));
-    s->key_cache = xmalloc(checked_bytes(cache_items, sizeof(float)));
-    s->value_cache = xmalloc(checked_bytes(cache_items, sizeof(float)));
+    s->key_cache = xreserve(checked_bytes(cache_items, sizeof(float)));
+    s->value_cache = xreserve(checked_bytes(cache_items, sizeof(float)));
     return 1;
 }
 

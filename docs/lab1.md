@@ -28,6 +28,11 @@ Also make kernel copies into user buffers handle the same lazy heap case.  A
 `read(fd, lazy_buffer, 1)` should allocate the destination page instead of
 failing.
 
+The runtime's KV cache allocation is intentionally a reservation: the cache is
+filled token by token during `llm_forward`, so the loader should not pre-zero
+the whole KV arena before inference starts.  If a helper touches every page
+during allocation, it has turned the experiment back into eager allocation.
+
 Run:
 
 ```sh
