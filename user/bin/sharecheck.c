@@ -55,7 +55,7 @@ int main(void) {
     lab_u64(
         "second_cost_kib", drop_kib(after_first.free_bytes, after_second.free_bytes)
     );
-    lab_u64("resident_after_second", after_second.resident_pages);
+    lab_u64("resident_after_second", after_second.resident_pages - before.resident_pages);
     lab_str("status", "ok");
     exit(0);
 }

@@ -42,10 +42,14 @@ int main(void) {
     snapshot(&after_refault);
 
     lab_i64("bytes_match", first == second);
-    lab_u64("resident_after_touch", after_touch.resident_pages);
-    lab_u64("resident_after_reclaim", after_reclaim.resident_pages);
-    lab_u64("resident_after_refault", after_refault.resident_pages);
-    lab_u64("faults_after_refault", after_refault.fault_count);
+    lab_u64("resident_after_touch", after_touch.resident_pages - before.resident_pages);
+    lab_u64(
+        "resident_after_reclaim", after_reclaim.resident_pages - before.resident_pages
+    );
+    lab_u64(
+        "resident_after_refault", after_refault.resident_pages - before.resident_pages
+    );
+    lab_u64("faults_after_refault", after_refault.fault_count - before.fault_count);
     lab_str("status", "ok");
     exit(0);
 }

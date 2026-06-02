@@ -40,9 +40,9 @@ int main(void) {
 
     lab_i64("byte_matches", p[0] == first);
     snapshot(&after_touch);
-    lab_u64("resident_after_map", after_map.resident_pages);
-    lab_u64("resident_after_touch", after_touch.resident_pages);
-    lab_u64("faults_after_touch", after_touch.fault_count);
+    lab_u64("resident_after_map", after_map.resident_pages - before.resident_pages);
+    lab_u64("resident_after_touch", after_touch.resident_pages - before.resident_pages);
+    lab_u64("faults_after_touch", after_touch.fault_count - before.fault_count);
     lab_str("status", "ok");
     exit(0);
 }

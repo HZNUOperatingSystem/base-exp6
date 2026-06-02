@@ -36,9 +36,14 @@ int main(void) {
     arena[4 * before.page_size] = 77;
     snapshot(&after_retouch);
 
-    lab_u64("resident_after_touch", after_touch.resident_pages);
-    lab_u64("resident_after_discard", after_discard.resident_pages);
-    lab_u64("resident_after_retouch", after_retouch.resident_pages);
+    lab_u64("resident_after_touch", after_touch.resident_pages - before.resident_pages);
+    lab_u64(
+        "resident_after_discard", after_discard.resident_pages - before.resident_pages
+    );
+    lab_u64(
+        "resident_after_retouch", after_retouch.resident_pages - before.resident_pages
+    );
+    lab_u64("faults_after_retouch", after_retouch.fault_count - before.fault_count);
     lab_i64("virtual_size_kept", after_discard.proc_size == after_touch.proc_size);
     lab_str("status", "ok");
     exit(0);

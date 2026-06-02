@@ -56,6 +56,7 @@ int main(void) {
     snapshot(&after_read);
 
     lab_u64("reserve_pages", reserve_pages);
+    lab_u64("touch_pages", 2);
     lab_u64("size_growth_kib", kib(after_reserve.proc_size - before.proc_size));
     lab_u64("reserve_cost_kib", drop_kib(before.free_bytes, after_reserve.free_bytes));
     lab_u64("touch_cost_kib", drop_kib(after_reserve.free_bytes, after_touch.free_bytes));
