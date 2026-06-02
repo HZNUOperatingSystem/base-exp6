@@ -53,3 +53,29 @@ uint64 sys_consolemode(void) {
 }
 
 uint64 sys_freemem(void) { return kfreemem(); }
+
+uint64 sys_vmstat(void) {
+    uint64 dst;
+
+    argaddr(0, &dst);
+    (void)dst;
+    // Lab 0: fill struct vmstat and copy it to the user pointer.
+    return -1;
+}
+
+uint64 sys_pagediscard(void) {
+    uint64 addr;
+    uint64 len;
+
+    argaddr(0, &addr);
+    argaddr(1, &len);
+    (void)addr;
+    (void)len;
+    // Lab 5: drop resident anonymous pages without shrinking p->sz.
+    return -1;
+}
+
+uint64 sys_pagereclaim(void) {
+    // Lab 6: reclaim clean file-backed pages from the current process.
+    return -1;
+}

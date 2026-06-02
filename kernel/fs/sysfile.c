@@ -98,6 +98,18 @@ uint64 sys_close(void) {
     return 0;
 }
 
+uint64 sys_filemap(void) {
+    int fd;
+    uint64 len;
+
+    argint(0, &fd);
+    argaddr(1, &len);
+    (void)fd;
+    (void)len;
+    // Lab 2: reserve a read-only file-backed virtual range.
+    return -1;
+}
+
 uint64 sys_fstat(void) {
     struct file* f;
     uint64 st; // user pointer to struct stat
