@@ -139,12 +139,6 @@ found:
 // including user pages.
 // p->lock must be held.
 static void freeproc(struct proc* p) {
-    for (int i = 0; i < NVMA; i++) {
-        if (p->vmas[i].used && p->vmas[i].file)
-            fileclose(p->vmas[i].file);
-        p->vmas[i].used = 0;
-        p->vmas[i].file = 0;
-    }
     if (p->trapframe)
         kfree((void*)p->trapframe);
     p->trapframe = 0;
@@ -152,7 +146,6 @@ static void freeproc(struct proc* p) {
         proc_freepagetable(p->pagetable, p->sz);
     p->pagetable = 0;
     p->sz = 0;
-    p->lazy_faults = 0;
     p->pid = 0;
     memset(&p->fpu, 0, sizeof(p->fpu));
     p->fpu_used = 0;
@@ -232,7 +225,6 @@ int growproc(int n) {
         if (sz + n > TRAPFRAME) {
             return -1;
         }
-        // Lab 1: separate heap size from immediate page residency.
         if ((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0) {
             return -1;
         }

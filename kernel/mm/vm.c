@@ -207,14 +207,6 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free) {
     }
 }
 
-int uvmdiscard(pagetable_t pagetable, uint64 va, uint64 len) {
-    (void)pagetable;
-    (void)va;
-    (void)len;
-    // Lab 5: drop present pages without shrinking the address space.
-    return -1;
-}
-
 // Allocate PTEs and physical memory to grow a process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
 uint64 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm) {
@@ -257,13 +249,6 @@ uint64 uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz) {
     }
 
     return newsz;
-}
-
-uint64 uvmresident(pagetable_t pagetable, uint64 sz) {
-    (void)pagetable;
-    (void)sz;
-    // Lab 2: report how much of this address space is currently resident.
-    return 0;
 }
 
 // Recursively free page-table pages.
@@ -434,13 +419,8 @@ int copyinstr(pagetable_t pagetable, char* dst, uint64 srcva, uint64 max) {
     }
 }
 
-// Resolve a user page fault if the fault belongs to a valid lazy range.
+// allocate and map user memory if process is referencing a page
+// that was lazily allocated in sys_sbrk().
 // returns 0 if va is invalid or already mapped, or if
 // out of physical memory, and physical address if successful.
-uint64 vmfault(pagetable_t pagetable, uint64 va, int read) {
-    (void)pagetable;
-    (void)va;
-    (void)read;
-    // Lab 1/2/3: materialize one page for a valid delayed mapping.
-    return 0;
-}
+uint64 vmfault(pagetable_t pagetable, uint64 va, int read) { return 0; }

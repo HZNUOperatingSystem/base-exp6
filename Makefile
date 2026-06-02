@@ -76,8 +76,8 @@ MIN_QEMU_VERSION ?= 7.2
 GDBPORT ?= $(shell expr `id -u` % 5000 + 25000)
 
 # model files
-TOKENIZER_URL ?= https://files.catbox.moe/n8fm33.bin
-MODEL_URL ?= https://files.catbox.moe/unhqvn.bin
+TOKENIZER_URL ?= https://github.com/karpathy/llama2.c/raw/refs/heads/master/tokenizer.bin
+MODEL_URL ?= https://huggingface.co/karpathy/tinyllamas/resolve/main/stories15M.bin
 
 # compiler flags
 CFLAGS += -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
@@ -225,31 +225,6 @@ MKFS = $(BUILD_DIR)/mkfs/mkfs
 FS_IMG = $(BUILD_DIR)/fs.img
 FS_FILES_DIR = files
 FS_FILES = $(shell find $(FS_FILES_DIR) -maxdepth 1 -type f 2>/dev/null | sort)
-AUTOGRADE_OS := $(shell uname -s 2>/dev/null)
-AUTOGRADE_ARCH := $(shell uname -m 2>/dev/null)
-
-ifeq ($(AUTOGRADE_OS),Darwin)
-ifeq ($(AUTOGRADE_ARCH),arm64)
-AUTOGRADE ?= tools/autograde/autograde-macos-arm64
-endif
-endif
-
-ifeq ($(AUTOGRADE_OS),Linux)
-ifeq ($(AUTOGRADE_ARCH),x86_64)
-AUTOGRADE ?= tools/autograde/autograde-linux-x64
-endif
-endif
-
-AUTOGRADE ?= tools/autograde/autograde-unsupported
-
-.PHONY: grade
-grade:
-	$(Q)if [ ! -x "$(AUTOGRADE)" ]; then \
-		echo "$(COLOR_ERR)ERROR: no autograde binary for $(AUTOGRADE_OS)/$(AUTOGRADE_ARCH)$(NC)"; \
-		echo "Expected executable: $(AUTOGRADE)"; \
-		exit 1; \
-	fi
-	$(Q)$(AUTOGRADE) $(if $(STAGE),--stage $(STAGE),) .
 
 .PHONY: download-files
 download-files: $(FS_FILES_DIR)/tokenizer.bin $(FS_FILES_DIR)/model.bin

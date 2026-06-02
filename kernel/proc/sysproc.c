@@ -53,26 +53,3 @@ uint64 sys_consolemode(void) {
 }
 
 uint64 sys_freemem(void) { return kfreemem(); }
-
-uint64 sys_vmstat(void) {
-    uint64 dst;
-
-    argaddr(0, &dst);
-    // Lab 0/2: fill the observation struct for this process.
-    return -1;
-}
-
-uint64 sys_pagediscard(void) {
-    uint64 addr;
-    uint64 len;
-
-    argaddr(0, &addr);
-    argaddr(1, &len);
-    // Lab 5: discard resident state for part of an existing range.
-    return -1;
-}
-
-uint64 sys_pagereclaim(void) {
-    // Lab 6: reclaim pages that can be reconstructed later.
-    return -1;
-}

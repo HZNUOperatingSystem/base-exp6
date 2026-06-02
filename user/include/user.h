@@ -6,7 +6,6 @@
 #define SBRK_ERROR ((char*)-1)
 
 struct stat;
-struct vmstat;
 
 // system calls
 int fork(void);
@@ -24,10 +23,6 @@ int getpid(void);
 int shutdown(void);
 int consolemode(int);
 uint64 freemem(void);
-int vmstat(struct vmstat*);
-char* filemap(int fd, uint64 len);
-int pagediscard(void* addr, uint64 len);
-int pagereclaim(void);
 char* sys_sbrk(int);
 
 // ulib.c
