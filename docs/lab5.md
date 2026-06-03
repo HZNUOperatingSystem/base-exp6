@@ -39,6 +39,27 @@ discardcheck
 make grade STAGE=lab5
 ```
 
+## Existing Interfaces You May Use
+
+Useful syscall and VM interfaces for page discard:
+
+- `pagediscard(addr, len)`: the user-facing syscall to implement.
+- `sys_pagediscard(void)`: the kernel syscall body.
+- `myproc()`, `p->sz`, `p->pagetable`: current process bounds and page table.
+- `argaddr(n, &x)`: read syscall address/length arguments.
+- `PGROUNDDOWN`, `PGROUNDUP`, `PGSIZE`: convert byte ranges to page ranges.
+- `walk(pagetable, va, 0)`: inspect existing PTEs without allocating page-table
+  pages.
+- `PTE_V`, `PTE_U`, `PTE_FILESHARED`, `PTE_COW`: distinguish resident user
+  pages, clean shared file pages, and anonymous/COW pages.
+- `PTE2PA`, `kfree(pa)`: release anonymous physical pages through the allocator.
+- `free_user_page(pte)`: if you built a shared release helper earlier, reuse it
+  instead of duplicating release policy.
+- `sfence_vma()`: flush stale translations after clearing PTEs.
+- `vmfault`: discarded anonymous pages should fault back through the demand-zero
+  path from Lab 1.
+- `uvmdiscard(pagetable, va, len)`: a good helper boundary for page-table work.
+
 ## Hints
 
 Discard is not `sbrk(-n)`: the virtual size should not shrink.

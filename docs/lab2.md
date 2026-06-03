@@ -39,6 +39,35 @@ mapcheck
 make grade STAGE=lab2
 ```
 
+## Existing Interfaces You May Use
+
+Useful file, process, and VM interfaces already present in this tree:
+
+- `struct proc`: holds per-process address-space state; this is a natural place
+  to store mapping metadata.
+- `struct file`: the kernel object behind an fd; it is more stable than the fd
+  integer itself.
+- `argfd(n, &fd, &f)`: validates a syscall fd argument and returns `struct file`.
+- `argaddr(n, &x)`: reads an address-sized syscall argument such as a length.
+- `filedup(f)`, `fileclose(f)`: hold and release references to an open file.
+- `FD_INODE`, `f->readable`, `f->type`, `f->ip`: identify readable inode-backed
+  files.
+- `PGROUNDUP`, `PGROUNDDOWN`, `PGSIZE`, `TRAPFRAME`, `MAXVA`: page alignment and
+  user address bounds.
+- `ilock(ip)`, `readi(ip, user_dst, dst, off, n)`, `iunlock(ip)`: read bytes
+  from an inode into a kernel page.
+- `kalloc()`, `kfree(pa)`, `memset`: allocate, release, and initialize faulted
+  pages.
+- `walk`, `mappages`, `PTE_V`, `PTE_R`, `PTE_W`, `PTE_U`: inspect and install
+  user PTEs.
+- `uvmcopy`, `uvmunmap`, `freeproc`, `kfork`: lifecycle paths that must preserve
+  or release per-process mapping metadata.
+- `uvmresident(pagetable, sz)`: a useful metric helper for counting resident
+  user pages.
+- `vmfault(pagetable, va, read)`: the fault path where file metadata becomes a
+  resident page.
+- `copyout`: still needed when extending `vmstat` with resident/fault metrics.
+
 ## Hints
 
 This is a deliberately small mapping interface, not full POSIX `mmap`.

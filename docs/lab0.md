@@ -54,6 +54,25 @@ memwhy model.bin
 make grade STAGE=lab0
 ```
 
+## Existing Interfaces You May Use
+
+Useful kernel/user interfaces already present in this tree:
+
+- `struct vmstat` in `include/vm.h`: the shared result layout copied from kernel
+  to user space.
+- `struct proc` in `kernel/include/proc.h`: the current process record;
+  `p->sz` is its virtual size and `p->pagetable` is its user page table.
+- `myproc()`: returns the process currently running this syscall.
+- `argaddr(n, &x)`: reads syscall argument `n` as an address-sized value.
+- `copyout(pagetable, dstva, src, len)`: copies a kernel buffer to a user
+  virtual address.
+- `kfreemem()`: reports free physical memory in bytes.
+- `memset(ptr, value, n)`: clears or fills a kernel buffer before copying it.
+- `PGSIZE`: the hardware page size used by xv6.
+- `SYS_*` numbers in `include/syscall.h`: syscall ABI numbers.
+- `sys_*` handlers in `kernel/proc/sysproc.c`: kernel-side syscall bodies.
+- `scripts/gen_usys.sh`: generates the user syscall stubs from the syscall list.
+
 ## Hints
 
 `freemem` already exposes one memory fact.  `vmstat` is different because it

@@ -23,6 +23,29 @@ sharecheck
 make grade STAGE=lab3
 ```
 
+## Existing Interfaces You May Use
+
+Useful interfaces and fields for shared clean file pages:
+
+- `struct inode`, `ip->dev`, `ip->inum`: stable file identity for cache keys.
+- `struct file`, `file->ip`: reach the inode behind a mapped file.
+- `struct vma`, `vma->file`, `vma->file_offset`, `vma->addr`: connect a faulting
+  virtual address back to file identity and offset.
+- `PGROUNDDOWN`, `PGSIZE`: compute page-aligned file offsets.
+- `struct spinlock`, `initlock`, `acquire`, `release`: protect a global cache.
+- `walk`, `mappages`, `PTE_V`, `PTE_R`, `PTE_U`, `PTE2PA`: inspect and install
+  PTEs, including two virtual mappings to one physical page.
+- PTE flag definitions in `kernel/riscv/riscv.h`: inspect these if you decide to
+  add a software bit that carries kernel-only metadata from fault time to unmap
+  time.
+- `kalloc()`, `kfree(pa)`, `memset`: allocate and clean up cache misses.
+- `ilock`, `readi`, `iunlock`: fill a cache-miss page from the inode.
+- `uvmunmap`: the release path that must distinguish shared file pages from
+  ordinary pages.
+- `panic(msg)`: useful for impossible internal cache invariants, not user input.
+- Small helper functions are encouraged here, for example cache lookup, insert,
+  release, and user-page release helpers.
+
 ## Hints
 
 Sharing a physical page does not mean sharing a virtual address.  Each mapping

@@ -30,6 +30,31 @@ cowcheck
 make grade STAGE=lab4
 ```
 
+## Existing Interfaces You May Use
+
+Useful allocator and page-table interfaces for copy-on-write:
+
+- `PHYSTOP`, `KERNBASE`, `PGSIZE`, `end`, `phys_top`: physical-memory bounds for
+  allocator bookkeeping.
+- `struct run`, `kmem.freelist`: xv6's physical-page freelist structure.
+- `struct spinlock`, `acquire`, `release`: protect allocator state and page
+  reference counts.
+- `kalloc()`, `kfree(pa)`: allocate and release physical pages; these may need
+  reference-count behavior.
+- `memset`, `memmove`: debug-fill pages and copy one page when COW breaks.
+- `walk`, `walkaddr`, `mappages`, `uvmunmap`: inspect, translate, install, and
+  remove user mappings.
+- `PTE_V`, `PTE_R`, `PTE_W`, `PTE_U`, `PTE_FLAGS`, `PTE2PA`, `PA2PTE`: inspect
+  and rewrite PTE permissions.
+- PTE flag definitions in `kernel/riscv/riscv.h`: inspect these if you add a
+  software bit for copy-on-write policy that hardware ignores.
+- `sfence_vma()`: flush stale translations after changing PTE permissions.
+- `uvmcopy(old, new, sz)`: fork's address-space copy path.
+- `vmfault(pagetable, va, read)`: handle write faults on COW pages.
+- `copyout`: kernel writes to user memory must also resolve COW.
+- Small helper functions are encouraged, for example physical-page refcount
+  helpers and a one-page COW resolver.
+
 ## Hints
 
 Use a software PTE bit for copy-on-write metadata.  The hardware will cause the
