@@ -30,6 +30,10 @@ cowcheck
 make grade STAGE=lab4
 ```
 
+The grader focuses on delayed copying.  A normal eager `fork` can still produce
+correct parent and child values, but it should not receive Lab 4 core credit
+unless the fork itself is cheap and the first write copies only the written page.
+
 ## Existing Interfaces You May Use
 
 Useful allocator and page-table interfaces for copy-on-write:

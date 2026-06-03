@@ -23,6 +23,10 @@ sharecheck
 make grade STAGE=lab3
 ```
 
+The grader focuses on physical reuse.  A solution that only preserves Lab 2
+file-backed mapping behavior, but still allocates one physical page per mapped
+view, is not considered a Lab 3 solution.
+
 ## Existing Interfaces You May Use
 
 Useful interfaces and fields for shared clean file pages:
