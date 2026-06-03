@@ -74,8 +74,3 @@ uint64 sys_pagediscard(void) {
     // Lab 5: drop resident anonymous pages without shrinking p->sz.
     return -1;
 }
-
-uint64 sys_pagereclaim(void) {
-    // Lab 6: reclaim clean file-backed pages from the current process.
-    return -1;
-}

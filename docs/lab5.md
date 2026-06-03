@@ -2,9 +2,11 @@
 
 ## Problem
 
-A long-running runtime may keep a large logical arena with stable addresses.
-Some blocks become empty, but shrinking the whole heap would destroy the address
-layout.
+After demand allocation, file-backed mappings, shared clean pages, and
+copy-on-write fork, the system can avoid many unnecessary copies.  One problem
+is still visible in long-running runtimes: they often keep a large logical arena
+with stable addresses.  Some blocks become empty, but shrinking the whole heap
+would destroy the address layout.
 
 Can user code tell the kernel that a range should remain valid but its resident
 anonymous pages may be forgotten?
@@ -46,3 +48,7 @@ sparse range.
 
 For GDB, step through range rounding and validation first; most early bugs are
 off-by-one errors near page boundaries.
+
+This is the last lab in the sequence.  At this point the model workload should
+be explainable as a set of virtual-memory choices: reservation, first touch,
+file-backed demand loading, sharing, write-time copying, and explicit discard.
