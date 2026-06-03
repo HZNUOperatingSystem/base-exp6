@@ -62,15 +62,3 @@ uint64 sys_vmstat(void) {
     // Lab 0: fill struct vmstat and copy it to the user pointer.
     return -1;
 }
-
-uint64 sys_pagediscard(void) {
-    uint64 addr;
-    uint64 len;
-
-    argaddr(0, &addr);
-    argaddr(1, &len);
-    (void)addr;
-    (void)len;
-    // Lab 5: drop resident anonymous pages without shrinking p->sz.
-    return -1;
-}

@@ -20,6 +20,5 @@
 #define SYS_freemem 24
 #define SYS_vmstat 25
 #define SYS_filemap 26
-#define SYS_pagediscard 27
 
 #endif

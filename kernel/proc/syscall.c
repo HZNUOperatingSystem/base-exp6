@@ -83,7 +83,6 @@ extern uint64 sys_consolemode(void);
 extern uint64 sys_freemem(void);
 extern uint64 sys_vmstat(void);
 extern uint64 sys_filemap(void);
-extern uint64 sys_pagediscard(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -106,7 +105,6 @@ static uint64 (*syscalls[])(void) = {
     [SYS_freemem] = sys_freemem,
     [SYS_vmstat] = sys_vmstat,
     [SYS_filemap] = sys_filemap,
-    [SYS_pagediscard] = sys_pagediscard,
 };
 
 void syscall(void) {
