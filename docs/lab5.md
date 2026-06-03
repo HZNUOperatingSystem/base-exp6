@@ -52,3 +52,14 @@ off-by-one errors near page boundaries.
 This is the last lab in the sequence.  At this point the model workload should
 be explainable as a set of virtual-memory choices: reservation, first touch,
 file-backed demand loading, sharing, write-time copying, and explicit discard.
+
+For final submission, run:
+
+```sh
+make submit
+```
+
+This always runs a fresh full grade first, writes `results.json` in the project
+root, and then creates `xv6-vm-submit.tar.gz`.  Full grading uses a 10 second
+timeout for each QEMU probe; a timed-out stage receives zero credit for that
+stage.

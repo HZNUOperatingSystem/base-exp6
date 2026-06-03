@@ -225,6 +225,10 @@ MKFS = $(BUILD_DIR)/mkfs/mkfs
 FS_IMG = $(BUILD_DIR)/fs.img
 FS_FILES_DIR = files
 FS_FILES = $(shell find $(FS_FILES_DIR) -maxdepth 1 -type f 2>/dev/null | sort)
+RESULTS_FILE = results.json
+SUBMIT_ARCHIVE ?= xv6-vm-submit.tar.gz
+SUBMIT_INPUTS = Makefile config.mk CHANGES.md README.md LICENSE include kernel linker scripts \
+	tools/gdbinit.tmpl-riscv tools/mkfs.c user docs $(RESULTS_FILE)
 AUTOGRADE_OS := $(shell uname -s 2>/dev/null)
 AUTOGRADE_ARCH := $(shell uname -m 2>/dev/null)
 
@@ -250,6 +254,23 @@ grade:
 		exit 1; \
 	fi
 	$(Q)$(AUTOGRADE) $(if $(STAGE),--stage $(STAGE),) .
+
+.PHONY: submit
+submit:
+	$(Q)if [ ! -x "$(AUTOGRADE)" ]; then \
+		echo "$(COLOR_ERR)ERROR: no autograde binary for $(AUTOGRADE_OS)/$(AUTOGRADE_ARCH)$(NC)"; \
+		echo "Expected executable: $(AUTOGRADE)"; \
+		exit 1; \
+	fi
+	$(ECHO) "$(COLOR_RUN)GRADE $(NC)refreshing $(RESULTS_FILE)"
+	$(Q)$(AUTOGRADE) . || true
+	$(Q)if [ ! -s "$(RESULTS_FILE)" ]; then \
+		echo "$(COLOR_ERR)ERROR: $(RESULTS_FILE) was not produced$(NC)"; \
+		exit 1; \
+	fi
+	$(ECHO) "$(COLOR_MKFS)SUBMIT$(NC)$(SUBMIT_ARCHIVE)"
+	$(Q)tar -czf "$(SUBMIT_ARCHIVE)" $(SUBMIT_INPUTS)
+	$(ECHO) "$(COLOR_OK)DONE  $(NC)$(SUBMIT_ARCHIVE)"
 
 .PHONY: download-files
 download-files: $(FS_FILES_DIR)/tokenizer.bin $(FS_FILES_DIR)/model.bin
