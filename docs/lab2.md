@@ -32,6 +32,9 @@ resume the faulting load
 Keep the file alive after `filemap` returns, even if the caller closes the file
 descriptor.
 
+You should also complete the `resident_pages` and `fault_count` in `struct vmstat`
+for autograder to inspect.
+
 Run:
 
 ```sh
