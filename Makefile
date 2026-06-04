@@ -76,8 +76,8 @@ MIN_QEMU_VERSION ?= 7.2
 GDBPORT ?= $(shell expr `id -u` % 5000 + 25000)
 
 # model files
-TOKENIZER_URL ?= https://files.catbox.moe/n8fm33.bin
-MODEL_URL ?= https://files.catbox.moe/unhqvn.bin
+TOKENIZER_URL ?= https://hznu-os-1302639736.cos.ap-shanghai.myqcloud.com/26-S-Exp6/tokenizer.bin
+MODEL_URL ?= https://hznu-os-1302639736.cos.ap-shanghai.myqcloud.com/26-S-Exp6/model.bin
 
 # compiler flags
 CFLAGS += -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
